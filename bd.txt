@@ -1,0 +1,104 @@
+drop database if exists domicilios_ricwer;
+create database domicilios_ricwer;
+use domicilios_ricwer;
+create table rolUsuario(
+	idRolUsuario int primary key AUTO_INCREMENT,
+	descripRolUsuario varchar(30) not null,
+	estadoRolUsuario varchar(30) not null
+);
+create table usuario(
+	idUsuario int primary key AUTO_INCREMENT,
+	tipoDocUsuario varchar(30) not null,
+	numdocUsuario varchar(20) not null,
+	nombreUsuario varchar(50) not null,
+	apellidoUsuario varchar(50) not null,
+	direccionUsuario varchar(80) not null,
+	telefonoUsuario varchar(20) not null,
+	correoUsuario varchar(70) not null unique,
+	passwordUsuario varchar(20) not null,
+	fotoUsuario blob not null,
+	estadoUsuario varchar(30) not null,
+	idRolUsuarioFK int,
+	foreign key (idRolUsuarioFK) references rolUsuario(idRolUsuario)
+);
+
+create table producto(
+	idProducto int primary key AUTO_INCREMENT,
+	nombreProducto varchar(50) not null,
+	descripcionProducto varchar(100) not null,
+	precioProducto double not null,
+	descuentoProducto tinyint(3) not null,
+	categoriaProducto varchar(40) not null,
+	estadoProducto varchar(30) not null
+);
+
+
+create table pedido(
+	idPedido int primary key AUTO_INCREMENT,
+	fechaPedido date not null,
+	horaPedido date not null,
+	totalPedido double not null,
+	estadoPedido varchar(30) not null,
+	pedidoaDomicilio char(3),
+	idUsuariofk int,
+	foreign key (idUsuarioFK) references Usuario(idUsuario)
+);
+
+create table detallePedido(
+	idDetallePedido int primary key AUTO_INCREMENT,
+	idProductoFK int,
+	cantidadProducto int not null,
+	precioProducto double not null,
+	subtotalProducto double not null,
+	idPedidoFK int,
+    foreign key (idProductoFK ) references Producto(idProducto),
+	foreign key (idPedidoFK) references Pedido(idPedido)
+);
+
+create table domicilio(
+	idDomicilio int primary key AUTO_INCREMENT,
+	horaDomicilio time not null,
+	estadoDomicilio varchar(30) not null,
+	idPedidoFK int,
+	idDomiciliarioFK int,
+    foreign key (idPedidoFK) references Pedido(idPedido),
+	foreign key (idDomiciliarioFK) references Usuario(idUsuario)
+);
+
+
+// procedimientos almacenados
+
+DELIMITER //
+CREATE PROCEDURE Consulta_Rol_login (in corU varchar(70))
+BEGIN
+SELECT usuario.nombreUsuario, rolusuario.descriRolUsuario FROM usuario INNER JOIN rolusuario ON usuario.idRolUsuarioFK = rolusuario.idRolUsuario WHERE usuario.correoUsuario = corU;
+END //
+DELIMITER ;
+
+DELIMITER //
+CREATE PROCEDURE Consulta_rol (in idU int)
+BEGIN
+SELECT usuario.nombreUsuario, rolusuario.descriRolUsuario FROM usuario INNER JOIN rolusuario ON usuario.idRolUsuarioFK = rolusuario.idRolUsuario WHERE usuario.idUsuario = idU;
+END //
+DELIMITER ;
+
+DELIMITER //
+CREATE PROCEDURE Consultar_usuariosE (in idU int)
+BEGIN
+SELECT `idUsuario`, `tipoDocUsuario`, `numdocUsuario`, `nombreUsuario`, `apellidoUsuario`, `direccionUsuario`, `telefonoUsuario`, `correoUsuario` FROM `usuario` WHERE `idUsuario` = idU;
+END //
+DELIMITER ;
+
+DELIMITER //
+CREATE PROCEDURE Actualizar_UsuarioId (in id int, in tpD varchar(30), in Doc varchar(20))
+BEGIN
+UPDATE Usuario set tipoDocUsuario=tpD, numdocUsuario=DOc where idUsuario=id;
+END //
+DELIMITER ;
+
+DELIMITER //
+CREATE PROCEDURE Eliminar_usuarios (in idU int)
+BEGIN
+DELETE FROM `usuario` WHERE idUsuario = idU;
+END //
+DELIMITER ;
