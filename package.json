@@ -1,0 +1,13 @@
+{
+  "name": "ricwer",
+  "version": "1.0.0",
+  "description": "``` ricwer/ ├── index.html              ← Archivo principal (abre este) ├── css/ │   └── styles.css          ← Estilos y diseño ├── js/ │   ├── core.js             ← Base de datos, utilidades, navegación │   ├── productos.js        ← Módulo de inventario │   ├── ventas.js           ← Módulo de ventas │   └── pedidos_arreglos.js ← Módulo de pedidos, arreglos y abonos └── README.md               ← Este archivo ```",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
