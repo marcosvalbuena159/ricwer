@@ -40,7 +40,6 @@ function renderVentas() {
 
   const empty = document.getElementById('venta-empty');
   const tbody = document.getElementById('venta-tbody');
-
   if (!list.length) { empty.style.display = 'block'; tbody.innerHTML = ''; return; }
   empty.style.display = 'none';
 
@@ -54,7 +53,7 @@ function renderVentas() {
     <td style="font-weight:600;color:var(--accent)">${fmtMoneyFull(v.total)}</td>
     <td>${pagoIcon(v.pago)}</td>
     <td>${v.notas ? `<span style="font-size:12px;color:var(--text-muted)" title="${v.notas}">📝 Nota</span>` : ''}</td>
-    <td><button class="btn btn-danger btn-sm" onclick="deleteItem('ventas','${v.id}',()=>{renderVentas();renderDashboard()})">×</button></td>
+    <td><button class="btn btn-danger btn-sm" onclick="deleteItemUI('ventas','${v.id}',()=>{renderVentas();renderDashboard()})">×</button></td>
   </tr>`).join('');
 }
 
@@ -72,7 +71,7 @@ function openNuevaVenta() {
   openModal('modal-venta');
 }
 
-function saveVenta() {
+async function saveVentaUI() {
   const sel = document.getElementById('v-producto');
   const val = sel.value;
   let prodId = null, prodNombre = '';
@@ -101,12 +100,20 @@ function saveVenta() {
     notas: document.getElementById('v-notas').value.trim()
   };
 
+  showLoader(true);
+  await saveVenta(obj);
+
   if (prodId) {
     const prod = DB.productos.find(p => p.id === prodId);
-    if (prod) prod.stock = Math.max(0, Number(prod.stock || 0) - cant);
+    if (prod) {
+      const newStock = Math.max(0, Number(prod.stock || 0) - cant);
+      await updateStock(prodId, newStock);
+      prod.stock = newStock;
+    }
   }
 
   const idx = DB.ventas.findIndex(x => x.id === obj.id);
   if (idx >= 0) DB.ventas[idx] = obj; else DB.ventas.push(obj);
-  saveDB(); closeModal('modal-venta'); renderVentas(); renderDashboard();
+  showLoader(false);
+  closeModal('modal-venta'); renderVentas(); renderDashboard();
 }

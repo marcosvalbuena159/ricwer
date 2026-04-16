@@ -44,14 +44,12 @@ function renderDashboard() {
     </div>
   `;
 
-  // Recent activity
   const acts = [];
   DB.ventas.slice(-5).forEach(v => acts.push({ tipo: 'venta', titulo: v.cliente || 'Cliente', sub: (v.productoNombre || 'Producto') + ' · ' + (v.pago || ''), monto: fmtMoneyFull(v.total), fecha: v.fecha, color: '#dcfce7' }));
   DB.pedidos.slice(-3).forEach(p => acts.push({ tipo: 'pedido', titulo: p.cliente || 'Cliente', sub: p.estado + (p.tel ? ' · ' + p.tel : ''), monto: fmtMoneyFull(p.total), fecha: p.fecha, color: '#fef9e6' }));
   DB.arreglos.slice(-3).forEach(a => acts.push({ tipo: 'arreglo', titulo: a.cliente || 'Cliente', sub: (a.tipo || '—') + ' · ' + a.estado, monto: fmtMoneyFull(a.costo), fecha: a.fecha, color: '#f3f0ff' }));
   acts.sort((a, b) => (b.fecha || '') > (a.fecha || '') ? 1 : -1);
   const top = acts.slice(0, 6);
-
   const icons = { venta: '💰', pedido: '📦', arreglo: '🔧' };
   const recentEl = document.getElementById('dash-recent');
   if (!top.length) {
@@ -68,7 +66,6 @@ function renderDashboard() {
       </div>`).join('') + `</div>`;
   }
 
-  // Low stock
   const low = DB.productos.filter(p => Number(p.stock || 0) <= Number(p.stockmin || 2));
   const lsEl = document.getElementById('dash-lowstock');
   if (!low.length) {
@@ -81,7 +78,6 @@ function renderDashboard() {
         <span style="font-size:12px">Solo <strong>${p.stock}</strong> en stock (mín: ${p.stockmin || 2})</span></div>
       </div>`).join('');
   }
-
   updateNavBadges();
 }
 
@@ -93,15 +89,10 @@ function renderProductos() {
     (!q || `${p.nombre} ${p.marca} ${p.talla} ${p.color} ${p.ref}`.toLowerCase().includes(q)) &&
     (!cat || p.categoria === cat)
   );
-
   const empty = document.getElementById('prod-empty');
   const tbody = document.getElementById('prod-tbody');
-
-  if (!list.length) {
-    empty.style.display = 'block'; tbody.innerHTML = ''; return;
-  }
+  if (!list.length) { empty.style.display = 'block'; tbody.innerHTML = ''; return; }
   empty.style.display = 'none';
-
   tbody.innerHTML = list.map(p => {
     const stock = Number(p.stock || 0);
     const min = Number(p.stockmin || 2);
@@ -123,7 +114,7 @@ function renderProductos() {
       <td>
         <div style="display:flex;gap:6px">
           <button class="btn btn-ghost btn-sm" onclick="editProducto('${p.id}')">✏️ Editar</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteItem('productos','${p.id}',renderProductos)">×</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteItemUI('productos','${p.id}',renderProductos)">×</button>
         </div>
       </td>
     </tr>`;
@@ -140,7 +131,7 @@ function openNuevoProducto() {
   openModal('modal-prod');
 }
 
-function saveProducto() {
+async function saveProductoUI() {
   const id = document.getElementById('p-id').value || uid();
   const nombre = document.getElementById('p-nombre').value.trim();
   if (!nombre) { alert('Escribe el nombre del producto.'); return; }
@@ -158,9 +149,12 @@ function saveProducto() {
     notas: document.getElementById('p-notas').value.trim(),
     fechaCreado: today()
   };
+  showLoader(true);
+  await saveProducto(obj);
   const idx = DB.productos.findIndex(p => p.id === id);
   if (idx >= 0) DB.productos[idx] = obj; else DB.productos.push(obj);
-  saveDB(); closeModal('modal-prod'); renderProductos();
+  showLoader(false);
+  closeModal('modal-prod'); renderProductos();
 }
 
 function editProducto(id) {
@@ -181,8 +175,11 @@ function editProducto(id) {
   openModal('modal-prod');
 }
 
-function deleteItem(table, id, cb) {
+async function deleteItemUI(table, id, cb) {
   if (!confirm('¿Eliminar este registro?')) return;
+  showLoader(true);
+  await deleteItemDB(table, id);
   DB[table] = DB[table].filter(x => x.id !== id);
-  saveDB(); cb(); updateNavBadges();
+  showLoader(false);
+  cb(); updateNavBadges();
 }

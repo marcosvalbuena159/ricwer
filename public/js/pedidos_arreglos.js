@@ -35,7 +35,7 @@ function renderPedidos() {
         <div style="display:flex;gap:4px;flex-wrap:wrap">
           <button class="btn btn-ghost btn-sm" onclick="editPedido('${p.id}')">✏️</button>
           <button class="btn btn-success btn-sm" onclick="openAbonoModal('pedidos','${p.id}')">💰 Abonar</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteItem('pedidos','${p.id}',renderPedidos)">×</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteItemUI('pedidos','${p.id}',renderPedidos)">×</button>
         </div>
       </td>
     </tr>`;
@@ -54,7 +54,7 @@ function openNuevoPedido() {
   openModal('modal-pedido');
 }
 
-function savePedido() {
+async function savePedidoUI() {
   const id = document.getElementById('pe-id').value || uid();
   const cliente = document.getElementById('pe-cliente').value.trim();
   if (!cliente) { alert('Escribe el nombre del cliente.'); return; }
@@ -67,15 +67,18 @@ function savePedido() {
     anticipo: Number(document.getElementById('pe-anticipo').value || 0),
     pagoAnticipo: document.getElementById('pe-pago-anticipo').value,
     total: Number(document.getElementById('pe-total').value || 0),
-    entrega: document.getElementById('pe-entrega').value,
+    entrega: document.getElementById('pe-entrega').value || null,
     estado: document.getElementById('pe-estado').value,
     notas: document.getElementById('pe-notas').value.trim(),
     fecha: existing ? existing.fecha : today(),
     abonos
   };
+  showLoader(true);
+  await savePedido(obj);
   const idx = DB.pedidos.findIndex(x => x.id === id);
   if (idx >= 0) DB.pedidos[idx] = obj; else DB.pedidos.push(obj);
-  saveDB(); closeModal('modal-pedido'); renderPedidos(); updateNavBadges();
+  showLoader(false);
+  closeModal('modal-pedido'); renderPedidos(); updateNavBadges();
 }
 
 function editPedido(id) {
@@ -134,7 +137,7 @@ function renderArreglos() {
         <div style="display:flex;gap:4px;flex-wrap:wrap">
           <button class="btn btn-ghost btn-sm" onclick="editArreglo('${a.id}')">✏️</button>
           <button class="btn btn-success btn-sm" onclick="openAbonoModal('arreglos','${a.id}')">💰 Abonar</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteItem('arreglos','${a.id}',renderArreglos)">×</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteItemUI('arreglos','${a.id}',renderArreglos)">×</button>
         </div>
       </td>
     </tr>`;
@@ -155,29 +158,33 @@ function openNuevoArreglo() {
   openModal('modal-arreglo');
 }
 
-function saveArreglo() {
+async function saveArregloUI() {
   const id = document.getElementById('a-id').value || uid();
   const cliente = document.getElementById('a-cliente').value.trim();
   if (!cliente) { alert('Escribe el nombre del cliente.'); return; }
   const existing = DB.arreglos.find(x => x.id === id);
   const abonos = existing ? existing.abonos || [] : [];
+  const costo = Number(document.getElementById('a-costo').value || 0);
   const obj = {
     id, cliente,
     tel: document.getElementById('a-tel').value.trim(),
     tipo: document.getElementById('a-tipo').value,
     desc: document.getElementById('a-desc').value.trim(),
-    costo: Number(document.getElementById('a-costo').value || 0),
+    costo,
     anticipo: Number(document.getElementById('a-anticipo').value || 0),
     pagoAnticipo: document.getElementById('a-pago-anticipo').value,
-    entrega: document.getElementById('a-entrega').value,
+    entrega: document.getElementById('a-entrega').value || null,
     estado: document.getElementById('a-estado').value,
     fecha: document.getElementById('a-fecha').value || today(),
-    total: Number(document.getElementById('a-costo').value || 0),
+    total: costo,
     abonos
   };
+  showLoader(true);
+  await saveArreglo(obj);
   const idx = DB.arreglos.findIndex(x => x.id === id);
   if (idx >= 0) DB.arreglos[idx] = obj; else DB.arreglos.push(obj);
-  saveDB(); closeModal('modal-arreglo'); renderArreglos(); updateNavBadges();
+  showLoader(false);
+  closeModal('modal-arreglo'); renderArreglos(); updateNavBadges();
 }
 
 function editArreglo(id) {
@@ -237,44 +244,52 @@ function renderAbonoModal() {
           <span class="a-pago">${pagoIcon(a.pago)}</span>
           ${a.nota ? `<span style="font-size:11px;color:var(--text-muted)">📝 ${a.nota}</span>` : ''}
           <span class="a-monto">${fmtMoneyFull(a.monto)}</span>
-          <button class="btn btn-danger btn-sm" style="padding:2px 7px" onclick="deleteAbono(${i})">×</button>
+          <button class="btn btn-danger btn-sm" style="padding:2px 7px" onclick="deleteAbonoUI('${a.id}',${i})">×</button>
         </div>`).join('') + '</div>';
   }
 }
 
-function registrarAbono() {
+async function registrarAbonoUI() {
   const { tabla, id } = _abonoCtx;
   const item = DB[tabla].find(x => x.id === id);
   if (!item) return;
   const monto = Number(document.getElementById('abono-monto').value || 0);
   if (!monto || monto <= 0) { alert('Ingresa un monto válido.'); return; }
-  if (!item.abonos) item.abonos = [];
-  item.abonos.push({
-    id: uid(),
-    monto,
+  const abono = {
+    id: uid(), monto,
     pago: document.getElementById('abono-pago').value,
     nota: document.getElementById('abono-nota').value.trim(),
     fecha: document.getElementById('abono-fecha').value || today()
-  });
+  };
+  showLoader(true);
+  await saveAbono(tabla, id, abono);
+  if (!item.abonos) item.abonos = [];
+  item.abonos.push(abono);
   document.getElementById('abono-nota').value = '';
   document.getElementById('abono-fecha').value = today();
   const saldo = getSaldo(item);
   if (saldo <= 0 && item.estado !== 'Entregado' && item.estado !== 'Cancelado') {
     if (confirm('✅ Saldo pagado completamente. ¿Marcar como "Listo para entregar" / "Listo"?')) {
       item.estado = tabla === 'pedidos' ? 'Listo para entregar' : 'Listo';
+      if (tabla === 'pedidos') await savePedido(item);
+      else await saveArreglo(item);
     }
   }
-  saveDB(); renderAbonoModal();
+  showLoader(false);
+  renderAbonoModal();
   if (tabla === 'pedidos') renderPedidos(); else renderArreglos();
   updateNavBadges();
 }
 
-function deleteAbono(idx) {
+async function deleteAbonoUI(abonoId, idx) {
   const { tabla, id } = _abonoCtx;
   const item = DB[tabla].find(x => x.id === id);
   if (!item || !item.abonos) return;
   if (!confirm('¿Eliminar este abono?')) return;
+  showLoader(true);
+  await deleteAbonoDB(abonoId);
   item.abonos.splice(idx, 1);
-  saveDB(); renderAbonoModal();
+  showLoader(false);
+  renderAbonoModal();
   if (tabla === 'pedidos') renderPedidos(); else renderArreglos();
 }
