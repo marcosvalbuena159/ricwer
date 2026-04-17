@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#0D2D6B">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Ricwer">
+  <title>Ricwer — Sistema de Gestión</title>
+  <link rel="stylesheet" href="./public/css/styles.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ─── SIDEBAR ─── -->
+  <aside id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">
+        <div>
+          <div class="logo-name">Ricwer</div>
+          <div class="logo-sub">Calidad y Economia</div>
+        </div>
+      </div>
+    </div>
+    <nav>
+      <div class="nav-group-label">Principal</div>
+      <button data-section="dashboard" class="active" onclick="showSection('dashboard')">
+        <span class="nav-icon">◈</span> Dashboard
+      </button>
+
+      <div class="nav-group-label">Inventario</div>
+      <button data-section="productos" onclick="showSection('productos')">
+        <span class="nav-icon">👟</span> Productos
+      </button>
+
+      <div class="nav-group-label">Operaciones</div>
+      <button data-section="ventas" onclick="showSection('ventas')">
+        <span class="nav-icon">💰</span> Ventas
+      </button>
+      <button data-section="pedidos" onclick="showSection('pedidos')">
+        <span class="nav-icon">📦</span> Pedidos
+        <span class="nav-badge" id="badge-pedidos" style="display:none"></span>
+      </button>
+      <button data-section="arreglos" onclick="showSection('arreglos')">
+        <span class="nav-icon">🔧</span> Arreglos
+        <span class="nav-badge" id="badge-arreglos" style="display:none"></span>
+      </button>
+    </nav>
+    <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,0.06)">
+      <div style="font-size:11px;color:rgba(255,255,255,0.25);text-align:center">Ricwer v2.0 · 2025</div>
+    </div>
+  </aside>
+
+  <!-- ─── MAIN CONTENT ─── -->
+  <div id="content">
+    <div id="topbar">
+      <button id="menu-toggle">☰</button>
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-date" id="topbar-date"></div>
+    </div>
+
+    <main>
+
+      <!-- ──────── DASHBOARD ──────── -->
+      <div id="s-dashboard" class="section active">
+        <div class="stats-grid" id="dash-stats"></div>
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">Actividad reciente</div>
+            </div>
+            <div class="panel-body" id="dash-recent"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">⚠️ Alertas de stock</div>
+            </div>
+            <div class="panel-body" id="dash-lowstock"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ──────── PRODUCTOS ──────── -->
+      <div id="s-productos" class="section">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Inventario</div>
+            <button class="btn btn-primary" onclick="openNuevoProducto()">+ Nuevo producto</button>
+          </div>
+          <div class="panel-body">
+            <div class="search-bar">
+              <div class="search-input-wrap">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="prod-search" placeholder="Buscar por nombre, marca, talla, color..." oninput="renderProductos()">
+              </div>
+              <select id="prod-cat-filter" onchange="renderProductos()" style="border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;font-size:13px;background:var(--surface);color:var(--text);font-family:var(--font-body)">
+                <option value="">Todas las categorías</option>
+                <option>Tenis</option><option>Botines</option><option>Sandalias</option><option>Tacones</option>
+                <option>Botas</option><option>Mocasines</option><option>Baletas</option><option>Otro</option>
+              </select>
+            </div>
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr>
+                  <th>Producto</th><th>Categoría</th><th>Talla</th><th>Color</th>
+                  <th>Costo</th><th>Precio venta</th><th>Stock</th><th>Estado</th><th></th>
+                </tr></thead>
+                <tbody id="prod-tbody"></tbody>
+              </table>
+            </div>
+            <div id="prod-empty" class="empty-state" style="display:none">
+              <div class="e-icon">👟</div><p>No hay productos. ¡Agrega el primero!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ──────── VENTAS ──────── -->
+      <div id="s-ventas" class="section">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Registro de ventas</div>
+            <button class="btn btn-accent" onclick="openNuevaVenta()">+ Nueva venta</button>
+          </div>
+          <div class="panel-body">
+            <div class="search-bar">
+              <div class="search-input-wrap">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="venta-search" placeholder="Buscar por cliente, producto, medio de pago..." oninput="renderVentas()">
+              </div>
+            </div>
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr>
+                  <th>Fecha</th><th>Cliente</th><th>Producto</th><th>Total</th><th>Pago</th><th>Notas</th><th></th>
+                </tr></thead>
+                <tbody id="venta-tbody"></tbody>
+              </table>
+            </div>
+            <div id="venta-empty" class="empty-state" style="display:none">
+              <div class="e-icon">💰</div><p>No hay ventas registradas aún.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ──────── PEDIDOS ──────── -->
+      <div id="s-pedidos" class="section">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Pedidos & Encargos</div>
+            <button class="btn btn-primary" onclick="openNuevoPedido()">+ Nuevo pedido</button>
+          </div>
+          <div class="panel-body">
+            <div class="search-bar">
+              <div class="search-input-wrap">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="ped-search" placeholder="Buscar cliente, descripción..." oninput="renderPedidos()">
+              </div>
+              <select id="ped-estado-filter" onchange="renderPedidos()" style="border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;font-size:13px;background:var(--surface);color:var(--text);font-family:var(--font-body)">
+                <option value="">Todos los estados</option>
+                <option>Pendiente</option><option>En proceso</option>
+                <option>Listo para entregar</option><option>Entregado</option><option>Cancelado</option>
+              </select>
+            </div>
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr>
+                  <th>Fecha entrega</th><th>Cliente</th><th>Descripción</th>
+                  <th>Total / Pagado</th><th>Saldo</th><th>Estado</th><th>Acciones</th>
+                </tr></thead>
+                <tbody id="ped-tbody"></tbody>
+              </table>
+            </div>
+            <div id="ped-empty" class="empty-state" style="display:none">
+              <div class="e-icon">📦</div><p>No hay pedidos activos.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ──────── ARREGLOS ──────── -->
+      <div id="s-arreglos" class="section">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Arreglos & Reparaciones</div>
+            <button class="btn btn-accent" onclick="openNuevoArreglo()">+ Nuevo arreglo</button>
+          </div>
+          <div class="panel-body">
+            <div class="search-bar">
+              <div class="search-input-wrap">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="arr-search" placeholder="Buscar cliente, tipo de arreglo..." oninput="renderArreglos()">
+              </div>
+              <select id="arr-estado-filter" onchange="renderArreglos()" style="border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;font-size:13px;background:var(--surface);color:var(--text);font-family:var(--font-body)">
+                <option value="">Todos los estados</option>
+                <option>Recibido</option><option>En proceso</option><option>Listo</option><option>Entregado</option>
+              </select>
+            </div>
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr>
+                  <th>Fecha</th><th>Cliente</th><th>Tipo</th><th>Descripción</th>
+                  <th>Costo / Pagado</th><th>Saldo</th><th>Estado</th><th>Acciones</th>
+                </tr></thead>
+                <tbody id="arr-tbody"></tbody>
+              </table>
+            </div>
+            <div id="arr-empty" class="empty-state" style="display:none">
+              <div class="e-icon">🔧</div><p>No hay arreglos registrados.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ════════════════ MODALES ════════════════ -->
+
+<!-- PRODUCTO -->
+<div class="modal-overlay" id="modal-prod">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-prod-title">Nuevo producto</h3>
+      <button class="modal-close" onclick="closeModal('modal-prod')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="field field-full"><label>Nombre del producto *</label><input id="p-nombre" placeholder="Ej: Tenis Nike Air Max 90"></div>
+      <div class="field"><label>Referencia</label><input id="p-ref" placeholder="REF-001"></div>
+      <div class="field"><label>Marca</label><input id="p-marca" placeholder="Nike, Adidas..."></div>
+      <div class="field"><label>Categoría</label>
+        <select id="p-cat"><option>Tenis</option><option>Botines</option><option>Sandalias</option><option>Tacones</option><option>Botas</option><option>Mocasines</option><option>Baletas</option><option>Otro</option></select>
+      </div>
+      <div class="field"><label>Talla</label><input id="p-talla" placeholder="36, 37, 38..."></div>
+      <div class="field"><label>Color</label><input id="p-color" placeholder="Negro, Blanco, Café..."></div>
+      <div class="field"><label>Precio de compra ($)</label><input id="p-costo" type="number" min="0" placeholder="0"></div>
+      <div class="field"><label>Precio de venta ($)</label><input id="p-precio" type="number" min="0" placeholder="0"></div>
+      <div class="field"><label>Stock disponible</label><input id="p-stock" type="number" min="0" placeholder="0"></div>
+      <div class="field"><label>Stock mínimo (alerta)</label><input id="p-stockmin" type="number" min="0" value="2"></div>
+      <div class="field field-full"><label>Notas</label><textarea id="p-notas" placeholder="Detalles adicionales..."></textarea></div>
+    </div>
+    <input type="hidden" id="p-id">
+    <div class="modal-footer">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveProductoUI()">💾 Guardar producto</button>
+        <button class="btn btn-ghost" onclick="closeModal('modal-prod')">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VENTA -->
+<div class="modal-overlay" id="modal-venta">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Nueva venta</h3>
+      <button class="modal-close" onclick="closeModal('modal-venta')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="field field-full"><label>Cliente</label><input id="v-cliente" placeholder="Nombre del cliente (opcional)"></div>
+      <div class="field field-full"><label>Producto *</label>
+        <select id="v-producto" onchange="onProductoVentaChange()"><option value="">— Seleccionar —</option></select>
+      </div>
+      <div class="field field-full" id="v-prod-manual-wrap" style="display:none">
+        <label>Nombre del producto (manual)</label>
+        <input id="v-prod-manual" placeholder="Escribe el nombre del producto">
+      </div>
+      <div class="field"><label>Cantidad</label><input id="v-cant" type="number" min="1" value="1" oninput="calcTotalVenta()"></div>
+      <div class="field"><label>Precio unitario ($)</label><input id="v-precio" type="number" min="0" oninput="calcTotalVenta()"></div>
+      <div class="field"><label>Total ($)</label><input id="v-total" type="number" readonly style="background:#f0f4ff;font-weight:600;color:var(--blue-dark)"></div>
+      <div class="field"><label>Medio de pago</label><select id="v-pago"></select></div>
+      <div class="field"><label>Fecha</label><input id="v-fecha" type="date"></div>
+      <div class="field field-full"><label>Notas</label><textarea id="v-notas" placeholder="Observaciones de la venta..."></textarea></div>
+    </div>
+    <input type="hidden" id="v-id">
+    <div class="modal-footer">
+      <div class="btn-row">
+        <button class="btn btn-accent" onclick="saveVentaUI()">✓ Registrar venta</button>
+        <button class="btn btn-ghost" onclick="closeModal('modal-venta')">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PEDIDO -->
+<div class="modal-overlay" id="modal-pedido">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-ped-title">Nuevo pedido</h3>
+      <button class="modal-close" onclick="closeModal('modal-pedido')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>Cliente *</label><input id="pe-cliente" placeholder="Nombre del cliente"></div>
+      <div class="field"><label>Teléfono</label><input id="pe-tel" placeholder="300 123 4567"></div>
+      <div class="field field-full"><label>Descripción del pedido</label>
+        <textarea id="pe-desc" placeholder="Qué zapato, talla, color, referencia, detalles..."></textarea>
+      </div>
+      <div class="field"><label>Total acordado ($)</label><input id="pe-total" type="number" min="0" value="0"></div>
+      <div class="field"><label>Anticipo recibido ($)</label><input id="pe-anticipo" type="number" min="0" value="0"></div>
+      <div class="field"><label>Medio de pago anticipo</label><select id="pe-pago-anticipo"></select></div>
+      <div class="field"><label>Fecha de entrega</label><input id="pe-entrega" type="date"></div>
+      <div class="field"><label>Estado</label>
+        <select id="pe-estado"><option>Pendiente</option><option>En proceso</option><option>Listo para entregar</option><option>Entregado</option><option>Cancelado</option></select>
+      </div>
+      <div class="field field-full"><label>Notas</label><textarea id="pe-notas" placeholder="Información adicional..."></textarea></div>
+    </div>
+    <input type="hidden" id="pe-id">
+    <div class="modal-footer">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="savePedidoUI()">💾 Guardar pedido</button>
+        <button class="btn btn-ghost" onclick="closeModal('modal-pedido')">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ARREGLO -->
+<div class="modal-overlay" id="modal-arreglo">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-arr-title">Nuevo arreglo</h3>
+      <button class="modal-close" onclick="closeModal('modal-arreglo')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>Cliente *</label><input id="a-cliente" placeholder="Nombre del cliente"></div>
+      <div class="field"><label>Teléfono</label><input id="a-tel" placeholder="300 123 4567"></div>
+      <div class="field"><label>Tipo de arreglo</label>
+        <select id="a-tipo"><option>Media suela</option><option>Suela completa</option><option>Tacón</option><option>Costura</option><option>Pegue</option><option>Limpieza</option><option>Tintura</option><option>Plantilla</option><option>Cierre</option><option>Otro</option></select>
+      </div>
+      <div class="field"><label>Estado</label>
+        <select id="a-estado"><option>Recibido</option><option>En proceso</option><option>Listo</option><option>Entregado</option></select>
+      </div>
+      <div class="field field-full"><label>Descripción</label>
+        <textarea id="a-desc" placeholder="Qué zapato, qué problema, marca, color, detalles..."></textarea>
+      </div>
+      <div class="field"><label>Costo del arreglo ($)</label><input id="a-costo" type="number" min="0" value="0"></div>
+      <div class="field"><label>Anticipo recibido ($)</label><input id="a-anticipo" type="number" min="0" value="0"></div>
+      <div class="field"><label>Medio de pago anticipo</label><select id="a-pago-anticipo"></select></div>
+      <div class="field"><label>Fecha de recibo</label><input id="a-fecha" type="date"></div>
+      <div class="field"><label>Fecha de entrega</label><input id="a-entrega" type="date"></div>
+    </div>
+    <input type="hidden" id="a-id">
+    <div class="modal-footer">
+      <div class="btn-row">
+        <button class="btn btn-accent" onclick="saveArregloUI()">💾 Guardar arreglo</button>
+        <button class="btn btn-ghost" onclick="closeModal('modal-arreglo')">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ABONO -->
+<div class="modal-overlay" id="modal-abono">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>💰 Registrar abono — <span id="abono-nombre"></span></h3>
+      <button class="modal-close" onclick="closeModal('modal-abono')">✕</button>
+    </div>
+    <div class="balance-box" id="abono-balance"></div>
+    <div class="divider"></div>
+    <div class="form-grid">
+      <div class="field"><label>Monto del abono ($) *</label><input id="abono-monto" type="number" min="0" placeholder="0"></div>
+      <div class="field"><label>Medio de pago</label><select id="abono-pago"></select></div>
+      <div class="field"><label>Fecha</label><input id="abono-fecha" type="date"></div>
+      <div class="field"><label>Nota</label><input id="abono-nota" placeholder="Observación (opcional)"></div>
+    </div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn btn-success" onclick="registrarAbonoUI()">✓ Registrar abono</button>
+    </div>
+    <div class="abono-section">
+      <h4>📋 Historial de abonos</h4>
+      <div id="abono-historial"></div>
+    </div>
+  </div>
+</div>
+
+<script src="./public/js/admin/core.js"></script>
+<script src="./public/js/admin/pedidos_arreglos.js"></script>
+<script src="./public/js/admin/productos.js"></script>
+<script src="./public/js/admin/ventas.js"></script>
+<script>
+  async function initApp() {
+    setTopbarDate();
+    document.getElementById('abono-fecha').value = today();
+    await loadDB();
+    renderDashboard();
+  }
+  initApp();
+</script>
+</body>
+</html>
