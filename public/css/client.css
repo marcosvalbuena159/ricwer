@@ -56,7 +56,7 @@ body {
 /* ─── LOADER ─────────────────────────────────────────────────────── */
 #app-loader {
   position: fixed; inset: 0;
-  background: var(--black);
+  background: var(--cream);
   display: flex; align-items: center; justify-content: center;
   flex-direction: column; gap: 20px;
   z-index: 9999;
