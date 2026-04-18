@@ -233,3 +233,131 @@ CREATE TABLE IF NOT EXISTS public.abonos (
     (pedido_id IS NULL AND arreglo_id IS NOT NULL)
   )
 );
+
+-- =====================================================
+-- RICWER — Schema PATCH v2.3 FIXED
+-- =====================================================
+
+-- ─── 1. PEDIDOS (FIX desc → descripcion) ──────────────
+ALTER TABLE public.pedidos
+  ADD COLUMN IF NOT EXISTS cliente TEXT DEFAULT '',
+  ADD COLUMN IF NOT EXISTS tel TEXT,
+  ADD COLUMN IF NOT EXISTS descripcion TEXT,
+  ADD COLUMN IF NOT EXISTS anticipo NUMERIC DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS pago_anticipo TEXT,
+  ADD COLUMN IF NOT EXISTS total NUMERIC DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS entrega DATE,
+  ADD COLUMN IF NOT EXISTS estado TEXT DEFAULT 'Pendiente',
+  ADD COLUMN IF NOT EXISTS notas TEXT,
+  ADD COLUMN IF NOT EXISTS fecha DATE DEFAULT CURRENT_DATE;
+
+-- Si existía columna "desc", renombrarla
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name='pedidos' AND column_name='desc'
+  ) THEN
+    ALTER TABLE public.pedidos RENAME COLUMN "desc" TO descripcion;
+  END IF;
+END $$;
+
+-- ─── 2. ARREGLOS (FIX desc → descripcion) ─────────────
+ALTER TABLE public.arreglos
+  ADD COLUMN IF NOT EXISTS cliente TEXT DEFAULT '',
+  ADD COLUMN IF NOT EXISTS tel TEXT,
+  ADD COLUMN IF NOT EXISTS tipo TEXT DEFAULT 'Media suela',
+  ADD COLUMN IF NOT EXISTS descripcion TEXT,
+  ADD COLUMN IF NOT EXISTS costo NUMERIC DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS anticipo NUMERIC DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS pago_anticipo TEXT,
+  ADD COLUMN IF NOT EXISTS entrega DATE,
+  ADD COLUMN IF NOT EXISTS estado TEXT DEFAULT 'Recibido',
+  ADD COLUMN IF NOT EXISTS fecha DATE DEFAULT CURRENT_DATE,
+  ADD COLUMN IF NOT EXISTS total NUMERIC DEFAULT 0;
+
+-- Renombrar si existía
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name='arreglos' AND column_name='desc'
+  ) THEN
+    ALTER TABLE public.arreglos RENAME COLUMN "desc" TO descripcion;
+  END IF;
+END $$;
+
+-- ─── 3. ORDEN ITEMS (columnas faltantes) ──────────────
+ALTER TABLE public.orden_items
+  ADD COLUMN IF NOT EXISTS producto_id UUID REFERENCES public.productos(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS variante_id UUID REFERENCES public.producto_variantes(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS talla TEXT,
+  ADD COLUMN IF NOT EXISTS color TEXT;
+
+-- ─── 4. VENTAS ────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.ventas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  cliente TEXT,
+  producto_id UUID REFERENCES public.productos(id) ON DELETE SET NULL,
+  producto_nombre TEXT,
+  cantidad INTEGER DEFAULT 1,
+  precio NUMERIC DEFAULT 0,
+  total NUMERIC DEFAULT 0,
+  pago TEXT,
+  fecha DATE DEFAULT CURRENT_DATE,
+  notas TEXT
+);
+
+-- ─── 5. MENSAJES ──────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.mensajes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  nombre_visitante TEXT,
+  email_visitante TEXT,
+  tipo TEXT DEFAULT 'soporte',
+  asunto TEXT NOT NULL,
+  cuerpo TEXT NOT NULL,
+  calificacion INTEGER CHECK (calificacion BETWEEN 1 AND 5),
+  estado TEXT DEFAULT 'abierto',
+  orden_id UUID REFERENCES public.ordenes(id) ON DELETE SET NULL,
+  leido_admin BOOLEAN DEFAULT FALSE,
+  leido_user BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─── 6. RESPUESTAS ────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.mensaje_respuestas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  mensaje_id UUID REFERENCES public.mensajes(id) ON DELETE CASCADE,
+  user_id UUID,
+  es_admin BOOLEAN DEFAULT FALSE,
+  cuerpo TEXT NOT NULL,
+  leido BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─── 7. NOTIFICACIONES ────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.notificaciones (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID,
+  tipo TEXT,
+  titulo TEXT,
+  cuerpo TEXT,
+  url TEXT,
+  leida BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─── 8. TRIGGER updated_at mensajes ───────────────────
+DROP TRIGGER IF EXISTS update_mensajes_updated_at ON public.mensajes;
+
+CREATE TRIGGER update_mensajes_updated_at
+BEFORE UPDATE ON public.mensajes
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ─── 9. ÍNDICES ───────────────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_mensajes_user ON public.mensajes(user_id);
+CREATE INDEX IF NOT EXISTS idx_respuestas_msg ON public.mensaje_respuestas(mensaje_id);
+
+-- ─── FIN PATCH FIXED ─────────────────────────────────

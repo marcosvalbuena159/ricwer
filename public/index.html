@@ -277,17 +277,36 @@
     })();
 
     // ─── REDIRECT SEGÚN ROL ───────────────────────────────────────
+    // Si el perfil aún no existe en BD (trigger pendiente), espera hasta 3 s
+    // antes de usar el rol del token. Si tampoco hay token, NO redirige
+    // para evitar el loop index ↔ cliente.
     async function redirectByRole(user) {
       showPageLoader(true);
       try {
-        const { data: profile } = await sb
-          .from('profiles')
-          .select('rol')
-          .eq('id', user.id)
-          .single();
+        let profile = null;
+        for (let i = 0; i < 5; i++) {
+          const { data } = await sb
+            .from('profiles')
+            .select('rol')
+            .eq('id', user.id)
+            .single();
+          if (data) { profile = data; break; }
+          await new Promise(r => setTimeout(r, 600));
+        }
 
-        const rol = profile?.rol || 'cliente';
-        window.location.href = rol === 'admin' ? ROUTES.admin : ROUTES.cliente;
+        // Fallback al metadata del token si el trigger aún no corrió
+        const rol = profile?.rol
+          || user.user_metadata?.rol
+          || 'cliente';
+
+        // Solo redirigir si logramos determinar el rol con certeza
+        if (profile || user.user_metadata?.rol) {
+          window.location.href = rol === 'admin' ? ROUTES.admin : ROUTES.cliente;
+        } else {
+          // No hay perfil ni metadata → dejar al usuario en index sin loop
+          showPageLoader(false);
+          console.warn('[index] No se pudo determinar el rol. Sesión activa pero perfil ausente.');
+        }
       } catch {
         showPageLoader(false);
       }
