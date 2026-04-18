@@ -40,7 +40,7 @@ html { scroll-behavior: smooth; }
 
 body {
   font-family: var(--font-body);
-  background: var(--black);
+  background: var(--cream);
   color: var(--text);
   min-height: 100vh;
   font-size: 14px;
@@ -56,7 +56,7 @@ body {
 /* ─── LOADER ─────────────────────────────────────────────────────── */
 #app-loader {
   position: fixed; inset: 0;
-  background: var(--cream);
+  background: var(--black);
   display: flex; align-items: center; justify-content: center;
   flex-direction: column; gap: 20px;
   z-index: 9999;
