@@ -46,6 +46,12 @@
         <span class="nav-icon">🔧</span> Arreglos
         <span class="nav-badge" id="badge-arreglos" style="display:none"></span>
       </button>
+
+      <div class="nav-group-label">Clientes</div>
+      <button data-section="mensajes" onclick="showSection('mensajes')">
+        <span class="nav-icon">💬</span> Mensajes
+        <span class="nav-badge" id="badge-mensajes" style="display:none"></span>
+      </button>
     </nav>
     <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,0.06)">
       <div style="font-size:11px;color:rgba(255,255,255,0.25);text-align:center">Ricwer v2.0 · 2025</div>
@@ -209,6 +215,64 @@
             </div>
             <div id="arr-empty" class="empty-state" style="display:none">
               <div class="e-icon">🔧</div><p>No hay arreglos registrados.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ──────── MENSAJES ──────── -->
+      <div id="s-mensajes" class="section">
+        <div id="msg-list-view">
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">Mensajes de clientes</div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <select id="msg-estado-filter" onchange="renderMensajes()" class="filter-select">
+                  <option value="">Todos los estados</option>
+                  <option value="abierto">Abiertos</option>
+                  <option value="respondido">Respondidos</option>
+                  <option value="cerrado">Cerrados</option>
+                </select>
+                <select id="msg-tipo-filter" onchange="renderMensajes()" class="filter-select">
+                  <option value="">Todos los tipos</option>
+                  <option value="soporte">Soporte</option>
+                  <option value="sugerencia">Sugerencia</option>
+                  <option value="reclamo">Reclamo</option>
+                  <option value="calificacion">Calificación</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
+            </div>
+            <div class="panel-body" style="padding:0">
+              <div id="msg-list"></div>
+              <div id="msg-empty" class="empty-state" style="display:none;padding:50px 20px">
+                <div class="e-icon">💬</div><p>No hay mensajes aún.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="msg-detail-view" style="display:none">
+          <button class="btn btn-ghost btn-sm" onclick="closeMsgDetail()" style="margin-bottom:16px">← Volver a mensajes</button>
+          <div id="msg-detail-content" class="msg-detail-card"></div>
+          <div class="panel" style="margin-top:16px">
+            <div class="panel-header"><div class="panel-title">💬 Conversación</div></div>
+            <div class="panel-body">
+              <div id="msg-thread" style="margin-bottom:16px"></div>
+              <div class="msg-reply-box">
+                <label style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);display:block;margin-bottom:6px">Tu respuesta</label>
+                <textarea id="msg-reply-text" rows="4" placeholder="Escribe tu respuesta al cliente..." style="width:100%;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-family:var(--font-body);font-size:14px;resize:vertical;outline:none;background:var(--surface2);color:var(--text);transition:all .15s"></textarea>
+                <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
+                  <button class="btn btn-primary" onclick="sendAdminReply()">✉️ Enviar respuesta</button>
+                  <select id="msg-change-estado" class="filter-select">
+                    <option value="">— Cambiar estado —</option>
+                    <option value="abierto">Abierto</option>
+                    <option value="respondido">Respondido</option>
+                    <option value="cerrado">Cerrado</option>
+                  </select>
+                  <button class="btn btn-ghost btn-sm" onclick="changeMsgEstado()">Cambiar estado</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -382,11 +446,219 @@
 <script src="./js/admin/productos.js"></script>
 <script src="./js/admin/ventas.js"></script>
 <script>
+  // ─── MENSAJES ────────────────────────────────────────────────────────
+  let MENSAJES = [];
+  let CURRENT_MSG = null;
+
+  async function loadMensajes() {
+    const { data } = await sb
+      .from('mensajes')
+      .select('*, profiles(nombre, apellido, email_visitante)')
+      .order('created_at', { ascending: false });
+    MENSAJES = data || [];
+
+    // Badge de no leídos
+    const noLeidos = MENSAJES.filter(m => !m.leido_admin).length;
+    const badge = document.getElementById('badge-mensajes');
+    if (badge) {
+      badge.textContent = noLeidos;
+      badge.style.display = noLeidos ? '' : 'none';
+    }
+  }
+
+  const MSG_TIPO_MAP = {
+    soporte:      { label: 'Soporte',      cls: 'b-blue'   },
+    sugerencia:   { label: 'Sugerencia',   cls: 'b-purple' },
+    reclamo:      { label: 'Reclamo',      cls: 'b-red'    },
+    calificacion: { label: 'Calificación', cls: 'b-amber'  },
+    otro:         { label: 'Otro',         cls: 'b-gray'   },
+  };
+  const MSG_ESTADO_MAP = {
+    abierto:     { label: 'Abierto',     cls: 'b-amber' },
+    respondido:  { label: 'Respondido',  cls: 'b-blue'  },
+    cerrado:     { label: 'Cerrado',     cls: 'b-gray'  },
+  };
+
+  function msgBadge(tipo) {
+    const t = MSG_TIPO_MAP[tipo] || { label: tipo, cls: 'b-gray' };
+    return `<span class="badge ${t.cls}">${t.label}</span>`;
+  }
+  function msgEstadoBadge(estado) {
+    const e = MSG_ESTADO_MAP[estado] || { label: estado, cls: 'b-gray' };
+    return `<span class="badge ${e.cls}">${e.label}</span>`;
+  }
+
+  function renderMensajes() {
+    const estadoF = document.getElementById('msg-estado-filter')?.value || '';
+    const tipoF   = document.getElementById('msg-tipo-filter')?.value   || '';
+    let list = MENSAJES;
+    if (estadoF) list = list.filter(m => m.estado === estadoF);
+    if (tipoF)   list = list.filter(m => m.tipo   === tipoF);
+
+    const el    = document.getElementById('msg-list');
+    const empty = document.getElementById('msg-empty');
+    if (!el) return;
+
+    if (!list.length) {
+      el.innerHTML = '';
+      empty.style.display = '';
+      return;
+    }
+    empty.style.display = 'none';
+
+    el.innerHTML = list.map(m => {
+      const nombre = m.profiles
+        ? `${m.profiles.nombre || ''} ${m.profiles.apellido || ''}`.trim()
+        : (m.nombre_visitante || 'Visitante');
+      const email = m.email_visitante || '';
+      const unread = !m.leido_admin;
+      const fecha = new Date(m.created_at).toLocaleDateString('es-CO', { day:'2-digit', month:'short', year:'numeric' });
+
+      return `
+      <div class="msg-row ${unread ? 'msg-unread' : ''}" onclick="openMsgDetail('${m.id}')">
+        <div class="msg-row-avatar">${(nombre[0] || '?').toUpperCase()}</div>
+        <div class="msg-row-body">
+          <div class="msg-row-top">
+            <span class="msg-row-name">${nombre}</span>
+            <span class="msg-row-badges">${msgBadge(m.tipo)} ${msgEstadoBadge(m.estado)}</span>
+            <span class="msg-row-date">${fecha}</span>
+          </div>
+          <div class="msg-row-subject">${m.asunto}</div>
+          <div class="msg-row-preview">${(m.cuerpo || '').slice(0, 100)}${m.cuerpo?.length > 100 ? '…' : ''}</div>
+        </div>
+        ${unread ? '<div class="msg-unread-dot"></div>' : ''}
+      </div>`;
+    }).join('');
+  }
+
+  async function openMsgDetail(id) {
+    CURRENT_MSG = MENSAJES.find(m => m.id === id);
+    if (!CURRENT_MSG) return;
+
+    // Marcar como leído
+    if (!CURRENT_MSG.leido_admin) {
+      await sb.from('mensajes').update({ leido_admin: true }).eq('id', id);
+      CURRENT_MSG.leido_admin = true;
+    }
+
+    document.getElementById('msg-list-view').style.display   = 'none';
+    document.getElementById('msg-detail-view').style.display = '';
+
+    const nombre = CURRENT_MSG.profiles
+      ? `${CURRENT_MSG.profiles.nombre || ''} ${CURRENT_MSG.profiles.apellido || ''}`.trim()
+      : (CURRENT_MSG.nombre_visitante || 'Visitante');
+    const email = CURRENT_MSG.email_visitante || '';
+    const fecha = new Date(CURRENT_MSG.created_at).toLocaleDateString('es-CO', { day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+    document.getElementById('msg-detail-content').innerHTML = `
+      <div class="panel">
+        <div class="panel-header" style="flex-wrap:wrap;gap:8px">
+          <div>
+            <div class="panel-title" style="margin-bottom:4px">${CURRENT_MSG.asunto}</div>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              ${msgBadge(CURRENT_MSG.tipo)} ${msgEstadoBadge(CURRENT_MSG.estado)}
+              ${CURRENT_MSG.calificacion ? `<span style="color:#f59e0b;font-size:14px">${'★'.repeat(CURRENT_MSG.calificacion)}${'☆'.repeat(5 - CURRENT_MSG.calificacion)}</span>` : ''}
+            </div>
+          </div>
+          <div style="text-align:right;font-size:12px;color:var(--text-muted)">
+            <div style="font-weight:600;color:var(--text)">${nombre}</div>
+            ${email ? `<div>${email}</div>` : ''}
+            <div>${fecha}</div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="msg-original-body">${CURRENT_MSG.cuerpo}</div>
+        </div>
+      </div>`;
+
+    // Cargar hilo de respuestas
+    await loadMsgThread(id);
+
+    // Set estado selector
+    const sel = document.getElementById('msg-change-estado');
+    if (sel) sel.value = '';
+
+    // Actualizar badge
+    await loadMensajes();
+    renderMensajes();
+  }
+
+  async function loadMsgThread(msgId) {
+    const { data: replies } = await sb
+      .from('mensaje_respuestas')
+      .select('*')
+      .eq('mensaje_id', msgId)
+      .order('created_at', { ascending: true });
+
+    const thread = document.getElementById('msg-thread');
+    if (!thread) return;
+    if (!replies?.length) {
+      thread.innerHTML = '<div style="color:var(--text-muted);font-size:13px;font-style:italic;padding:8px 0">Sin respuestas aún.</div>';
+      return;
+    }
+    thread.innerHTML = replies.map(r => {
+      const fecha = new Date(r.created_at).toLocaleDateString('es-CO', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+      return `
+      <div class="msg-bubble ${r.es_admin ? 'msg-bubble-admin' : 'msg-bubble-client'}">
+        <div class="msg-bubble-meta">
+          <span>${r.es_admin ? '🛡️ Admin' : '👤 Cliente'}</span>
+          <span>${fecha}</span>
+        </div>
+        <div class="msg-bubble-text">${r.cuerpo}</div>
+      </div>`;
+    }).join('');
+  }
+
+  async function sendAdminReply() {
+    if (!CURRENT_MSG) return;
+    const texto = document.getElementById('msg-reply-text').value.trim();
+    if (!texto) { alert('Escribe una respuesta.'); return; }
+
+    const btn = document.querySelector('[onclick="sendAdminReply()"]');
+    btn.disabled = true; btn.textContent = 'Enviando...';
+
+    const { error } = await sb.from('mensaje_respuestas').insert({
+      mensaje_id: CURRENT_MSG.id,
+      es_admin: true,
+      cuerpo: texto,
+      leido: false,
+    });
+
+    if (!error) {
+      // Cambiar estado a respondido automáticamente
+      await sb.from('mensajes').update({ estado: 'respondido', leido_user: false }).eq('id', CURRENT_MSG.id);
+      document.getElementById('msg-reply-text').value = '';
+      await loadMsgThread(CURRENT_MSG.id);
+      await loadMensajes();
+    } else {
+      alert('Error enviando respuesta: ' + error.message);
+    }
+    btn.disabled = false; btn.textContent = '✉️ Enviar respuesta';
+  }
+
+  async function changeMsgEstado() {
+    if (!CURRENT_MSG) return;
+    const nuevoEstado = document.getElementById('msg-change-estado').value;
+    if (!nuevoEstado) { alert('Selecciona un estado.'); return; }
+    await sb.from('mensajes').update({ estado: nuevoEstado }).eq('id', CURRENT_MSG.id);
+    CURRENT_MSG.estado = nuevoEstado;
+    await loadMensajes();
+    openMsgDetail(CURRENT_MSG.id); // refrescar detalle
+  }
+
+  function closeMsgDetail() {
+    document.getElementById('msg-detail-view').style.display = 'none';
+    document.getElementById('msg-list-view').style.display   = '';
+    CURRENT_MSG = null;
+  }
+  // ─── INIT ────────────────────────────────────────────────────────────
   async function initApp() {
     setTopbarDate();
     document.getElementById('abono-fecha').value = today();
     await loadDB();
+    await loadMensajes();
     renderDashboard();
+    renderMensajes();
   }
   initApp();
 </script>

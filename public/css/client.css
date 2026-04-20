@@ -40,7 +40,7 @@ html { scroll-behavior: smooth; }
 
 body {
   font-family: var(--font-body);
-  background: var(--cream);
+  background: var(--black);
   color: var(--text);
   min-height: 100vh;
   font-size: 14px;
