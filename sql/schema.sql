@@ -361,3 +361,302 @@ CREATE INDEX IF NOT EXISTS idx_mensajes_user ON public.mensajes(user_id);
 CREATE INDEX IF NOT EXISTS idx_respuestas_msg ON public.mensaje_respuestas(mensaje_id);
 
 -- ─── FIN PATCH FIXED ─────────────────────────────────
+
+-- =====================================================
+-- RICWER — RLS RESET COMPLETO (ejecutar completo)
+-- Paso 1: borra TODAS las políticas existentes
+-- Paso 2: las recrea limpias sin duplicados
+-- =====================================================
+
+-- ══════════════════════════════════════════════════════
+-- PASO 1: ELIMINAR TODAS LAS POLÍTICAS EXISTENTES
+-- ══════════════════════════════════════════════════════
+
+DO $$
+DECLARE
+  r RECORD;
+BEGIN
+  FOR r IN
+    SELECT schemaname, tablename, policyname
+    FROM pg_policies
+    WHERE schemaname = 'public'
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I',
+      r.policyname, r.schemaname, r.tablename);
+  END LOOP;
+END $$;
+
+-- ══════════════════════════════════════════════════════
+-- PASO 2: HABILITAR RLS EN TODAS LAS TABLAS
+-- ══════════════════════════════════════════════════════
+
+ALTER TABLE public.profiles            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.direcciones         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categorias          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.productos           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.producto_variantes  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.producto_imagenes   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.carrito             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ordenes             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orden_items         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notificaciones      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mensajes            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mensaje_respuestas  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ventas              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pedidos             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.arreglos            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.abonos              ENABLE ROW LEVEL SECURITY;
+
+-- ══════════════════════════════════════════════════════
+-- PASO 3: RECREAR is_admin() LIMPIA
+-- ══════════════════════════════════════════════════════
+
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND rol = 'admin'
+  );
+$$;
+
+-- ══════════════════════════════════════════════════════
+-- PASO 4: POLÍTICAS — UNA POR TABLA, SIN DUPLICADOS
+-- ══════════════════════════════════════════════════════
+
+-- ─── PROFILES ─────────────────────────────────────────
+-- SELECT: propio o admin
+CREATE POLICY "profiles_select"
+ON public.profiles FOR SELECT
+USING (id = auth.uid() OR public.is_admin());
+
+-- INSERT: el propio user (al registrarse) o admin
+CREATE POLICY "profiles_insert"
+ON public.profiles FOR INSERT
+WITH CHECK (id = auth.uid() OR public.is_admin());
+
+-- UPDATE: el propio user o admin
+CREATE POLICY "profiles_update"
+ON public.profiles FOR UPDATE
+USING (id = auth.uid() OR public.is_admin())
+WITH CHECK (id = auth.uid() OR public.is_admin());
+
+-- DELETE: solo admin
+CREATE POLICY "profiles_delete"
+ON public.profiles FOR DELETE
+USING (public.is_admin());
+
+-- ─── CATEGORÍAS (lectura libre, escritura admin) ───────
+CREATE POLICY "categorias_select"
+ON public.categorias FOR SELECT
+USING (true);
+
+CREATE POLICY "categorias_write"
+ON public.categorias FOR ALL
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
+-- ─── PRODUCTOS (lectura libre, escritura admin) ────────
+CREATE POLICY "productos_select"
+ON public.productos FOR SELECT
+USING (true);
+
+CREATE POLICY "productos_write"
+ON public.productos FOR ALL
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
+-- ─── VARIANTES (lectura libre, escritura admin) ────────
+CREATE POLICY "variantes_select"
+ON public.producto_variantes FOR SELECT
+USING (true);
+
+CREATE POLICY "variantes_write"
+ON public.producto_variantes FOR ALL
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
+-- ─── IMÁGENES (lectura libre, escritura admin) ─────────
+CREATE POLICY "imagenes_select"
+ON public.producto_imagenes FOR SELECT
+USING (true);
+
+CREATE POLICY "imagenes_write"
+ON public.producto_imagenes FOR ALL
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
+-- ─── CARRITO ───────────────────────────────────────────
+CREATE POLICY "carrito_all"
+ON public.carrito FOR ALL
+USING (user_id = auth.uid() OR public.is_admin())
+WITH CHECK (user_id = auth.uid() OR public.is_admin());
+
+-- ─── DIRECCIONES ──────────────────────────────────────
+CREATE POLICY "direcciones_all"
+ON public.direcciones FOR ALL
+USING (user_id = auth.uid() OR public.is_admin())
+WITH CHECK (user_id = auth.uid() OR public.is_admin());
+
+-- ─── ORDENES ──────────────────────────────────────────
+CREATE POLICY "ordenes_select"
+ON public.ordenes FOR SELECT
+USING (user_id = auth.uid() OR public.is_admin());
+
+CREATE POLICY "ordenes_insert"
+ON public.ordenes FOR INSERT
+WITH CHECK (user_id = auth.uid() OR public.is_admin());
+
+CREATE POLICY "ordenes_update"
+ON public.ordenes FOR UPDATE
+USING (user_id = auth.uid() OR public.is_admin())
+WITH CHECK (user_id = auth.uid() OR public.is_admin());
+
+CREATE POLICY "ordenes_delete"
+ON public.ordenes FOR DELETE
+USING (public.is_admin());
+
+-- ─── ORDEN ITEMS ──────────────────────────────────────
+CREATE POLICY "orden_items_select"
+ON public.orden_items FOR SELECT
+USING (
+  public.is_admin() OR
+  EXISTS (
+    SELECT 1 FROM public.ordenes o
+    WHERE o.id = orden_id AND o.user_id = auth.uid()
+  )
+);
+
+CREATE POLICY "orden_items_write"
+ON public.orden_items FOR ALL
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
+-- ─── NOTIFICACIONES ───────────────────────────────────
+CREATE POLICY "notif_all"
+ON public.notificaciones FOR ALL
+USING (user_id = auth.uid() OR public.is_admin())
+WITH CHECK (user_id = auth.uid() OR public.is_admin());
+
+-- ─── MENSAJES ─────────────────────────────────────────
+CREATE POLICY "mensajes_select"
+ON public.mensajes FOR SELECT
+USING (user_id = auth.uid() OR public.is_admin());
+
+CREATE POLICY "mensajes_insert"
+ON public.mensajes FOR INSERT
+WITH CHECK (
+  auth.uid() IS NOT NULL AND
+  (user_id = auth.uid() OR public.is_admin())
+);
+
+CREATE POLICY "mensajes_update"
+ON public.mensajes FOR UPDATE
+USING (user_id = auth.uid() OR public.is_admin())
+WITH CHECK (user_id = auth.uid() OR public.is_admin());
+
+-- ─── MENSAJE RESPUESTAS ───────────────────────────────
+CREATE POLICY "respuestas_select"
+ON public.mensaje_respuestas FOR SELECT
+USING (
+  public.is_admin() OR
+  EXISTS (
+    SELECT 1 FROM public.mensajes m
+    WHERE m.id = mensaje_id AND m.user_id = auth.uid()
+  )
+);
+
+CREATE POLICY "respuestas_insert"
+ON public.mensaje_respuestas FOR INSERT
+WITH CHECK (
+  public.is_admin() OR
+  EXISTS (
+    SELECT 1 FROM public.mensajes m
+    WHERE m.id = mensaje_id AND m.user_id = auth.uid()
+  )
+);
+
+-- ─── VENTAS / PEDIDOS / ARREGLOS / ABONOS (solo admin) ─
+CREATE POLICY "ventas_admin"
+ON public.ventas FOR ALL
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
+CREATE POLICY "pedidos_admin"
+ON public.pedidos FOR ALL
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
+CREATE POLICY "arreglos_admin"
+ON public.arreglos FOR ALL
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
+CREATE POLICY "abonos_admin"
+ON public.abonos FOR ALL
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
+-- ══════════════════════════════════════════════════════
+-- PASO 5: TRIGGER PARA AUTO-CREAR PERFIL AL REGISTRARSE
+-- Evita el error 406 cuando profiles no existe aún
+-- ══════════════════════════════════════════════════════
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, rol, nombre, apellido, telefono)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'rol', 'cliente'),
+    COALESCE(NEW.raw_user_meta_data->>'nombre', ''),
+    COALESCE(NEW.raw_user_meta_data->>'apellido', ''),
+    COALESCE(NEW.raw_user_meta_data->>'telefono', '')
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ══════════════════════════════════════════════════════
+-- PASO 6: CREAR PERFIL PARA USUARIOS EXISTENTES SIN PERFIL
+-- Ejecuta esto una sola vez para reparar usuarios actuales
+-- ══════════════════════════════════════════════════════
+
+INSERT INTO public.profiles (id, rol, nombre, apellido)
+SELECT
+  u.id,
+  COALESCE(u.raw_user_meta_data->>'rol', 'cliente'),
+  COALESCE(u.raw_user_meta_data->>'nombre', ''),
+  COALESCE(u.raw_user_meta_data->>'apellido', '')
+FROM auth.users u
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.profiles p WHERE p.id = u.id
+);
+
+-- ══════════════════════════════════════════════════════
+-- VERIFICACIÓN FINAL
+-- ══════════════════════════════════════════════════════
+-- Ejecuta estas consultas para confirmar:
+--
+-- 1. Ver todas las políticas creadas:
+--    SELECT tablename, policyname, cmd FROM pg_policies WHERE schemaname='public' ORDER BY tablename;
+--
+-- 2. Verificar que todos los usuarios tienen perfil:
+--    SELECT u.email, p.id IS NOT NULL as tiene_perfil, p.rol
+--    FROM auth.users u LEFT JOIN public.profiles p ON p.id = u.id;
+--
+-- 3. Verificar que is_admin() funciona (como admin):
+--    SELECT public.is_admin();  → debe retornar TRUE si eres admin
