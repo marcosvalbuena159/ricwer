@@ -183,7 +183,7 @@ body {
   min-height: calc(100vh - var(--nav-h));
   display: flex; align-items: center;
   overflow: hidden;
-  background: var(--black);
+  background: var(--cream);
 }
 .hero-bg {
   position: absolute; inset: 0;
@@ -212,10 +212,10 @@ body {
   font-size: clamp(64px, 8vw, 120px);
   line-height: 0.92;
   letter-spacing: 2px;
-  color: var(--white);
+  color: var(--black);
 }
 .hero-h1 .italic { font-family: var(--font-serif); font-style: italic; color: var(--gold); font-size: 0.7em; display: block; }
-.hero-sub { font-size: 16px; color: var(--text-muted); margin: 24px 0 36px; line-height: 1.7; max-width: 460px; }
+.hero-sub { font-size: 16px; color: var(--black3); margin: 24px 0 36px; line-height: 1.7; max-width: 460px; }
 .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
 .hero-visual {
   position: absolute; right: -60px; top: 50%; transform: translateY(-50%);
@@ -275,7 +275,7 @@ body {
   gap: 20px; flex-wrap: wrap;
 }
 .cat-title { font-family: var(--font-display); font-size: 36px; letter-spacing: 2px; line-height: 1; }
-.cat-title small { display: block; font-family: var(--font-body); font-size: 13px; letter-spacing: 0; font-weight: 400; color: var(--text-muted); margin-top: 4px; }
+.cat-title small { display: block; font-family: var(--font-body); font-size: 13px; letter-spacing: 0; font-weight: 400; color: var(--black); margin-top: 4px; }
 
 /* Filtros */
 .filters-bar {
