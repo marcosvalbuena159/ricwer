@@ -7,15 +7,15 @@
   --black:        #0a0a0a;
   --black2:       #111111;
   --black3:       #1a1a1a;
-  --surface:      #1e1e1e;
-  --surface2:     #252525;
-  --border:       #2e2e2e;
-  --border-light: #3a3a3a;
-  --white:        #fafafa;
+  --surface:      #ffffff;
+  --surface2:     #faf6ef;
+  --border:       rgba(139,110,60,0.18);
+  --border-light: rgba(139,110,60,0.30);
+  --white:        #1a1410;
   --cream:        #f5f0e8;
-  --text:         #e8e8e8;
-  --text-muted:   #888;
-  --text-dim:     #555;
+  --text:         #1a1410;
+  --text-muted:   #6b5f50;
+  --text-dim:     #9e9080;
   --gold:         #c9a84c;
   --gold-light:   #e8c96a;
   --gold-dark:    #8a6a20;
@@ -48,9 +48,32 @@ body {
   overflow-x: hidden;
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════
+   ZONAS NEGRAS: restaurar texto claro donde el fondo es oscuro
+   ═══════════════════════════════════════════════════════════════════ */
+#topbar,
+#hero,
+footer,
+#cart-drawer,
+#user-menu,
+#notif-panel,
+.product-card,
+#app-loader,
+#mobile-nav {
+  --white:        #fafafa;
+  --text:         #e8e8e8;
+  --text-muted:   #888888;
+  --text-dim:     #555555;
+  --surface:      #1e1e1e;
+  --surface2:     #252525;
+  --border:       #2e2e2e;
+  --border-light: #3a3a3a;
+}
+
 /* ─── SCROLLBAR ──────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: var(--cream); }
+::-webkit-scrollbar-track { background: var(--black2); }
 ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 10px; }
 
 /* ─── LOADER ─────────────────────────────────────────────────────── */
@@ -68,27 +91,6 @@ body {
 .loader-line { width: 120px; height: 1px; background: var(--border); overflow: hidden; }
 .loader-fill { height: 100%; background: linear-gradient(90deg, var(--gold-dark), var(--gold-light)); animation: loaderSlide 1.2s ease-in-out infinite; }
 @keyframes loaderSlide { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
-
-
-/* ─── TEXTO OSCURO PARA SECCIONES SOBRE FONDO CREMA ─────────────── */
-/* Solo las secciones sin fondo propio heredan el body crema          */
-#s-home,
-#s-catalogo,
-#s-perfil,
-#s-ordenes,
-#s-mensajes,
-#s-checkout,
-#s-producto,
-#s-nosotros {
-  --text:       #1a1410;
-  --text-muted: #6b5f50;
-  --text-dim:   #9e9080;
-  --white:      #1a1410;
-  --surface:    #ffffff;
-  --surface2:   #faf6ef;
-  --border:     rgba(139,110,60,0.18);
-  --border-light: rgba(139,110,60,0.30);
-}
 
 /* ─── TOPBAR ─────────────────────────────────────────────────────── */
 #topbar {
@@ -206,13 +208,6 @@ body {
   overflow: hidden;
   background: var(--black);
 }
-
-/* ─── HERO: fondo negro, texto blanco (override cremaa del body) ── */
-#hero {
-  --text:       #e8e8e8;
-  --text-muted: #888;
-  --text-dim:   #555;
-}
 .hero-bg {
   position: absolute; inset: 0;
   background:
@@ -283,7 +278,7 @@ body {
   color: var(--text-muted); font-size: 12px;
   letter-spacing: 1px;
 }
-.btn-ghost:hover { color: var(--black); }
+.btn-ghost:hover { color: var(--white); }
 
 .btn-danger { background: var(--red); color: white; }
 .btn-danger:hover { background: #c53030; }
@@ -347,13 +342,6 @@ body {
   margin: 0;
 }
 
-
-/* ─── PRODUCT CARDS: fondo oscuro, texto claro ── */
-.product-card {
-  --text:       #e8e8e8;
-  --text-muted: #888;
-  --white:      #fafafa;
-}
 .product-card {
   background: var(--black2);
   cursor: pointer;
@@ -606,13 +594,6 @@ body {
 
 .prod-actions-row { display: flex; gap: 10px; }
 
-
-/* ─── CART DRAWER: fondo negro, texto claro ── */
-#cart-drawer {
-  --text:       #e8e8e8;
-  --text-muted: #888;
-  --white:      #fafafa;
-}
 /* ─── CARRITO SIDEBAR ────────────────────────────────────────────── */
 #cart-drawer {
   position: fixed; top: 0; right: 0; bottom: 0;
@@ -701,13 +682,6 @@ body {
 .cart-row.total { font-size: 18px; font-weight: 600; color: var(--white); margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
 .cart-row.total span:last-child { color: var(--gold); }
 
-
-/* ─── CHECKOUT — resumen (fondo oscuro) ── */
-.os-header, .os-items, .os-totales, .os-section {
-  --text:       #e8e8e8;
-  --text-muted: #888;
-  --white:      #fafafa;
-}
 /* ─── CHECKOUT ───────────────────────────────────────────────────── */
 #s-checkout { padding: 48px 32px 80px; max-width: 960px; margin: 0 auto; }
 .checkout-layout { display: grid; grid-template-columns: 1fr 360px; gap: 40px; align-items: start; }
@@ -1054,13 +1028,6 @@ body {
 .toast.error { border-left-color: var(--red); }
 @keyframes toastIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
 
-
-/* ─── FOOTER: fondo negro, texto claro ── */
-footer, #footer {
-  --text:       #e8e8e8;
-  --text-muted: #888;
-  --white:      #fafafa;
-}
 /* ─── FOOTER ─────────────────────────────────────────────────────── */
 #footer {
   background: var(--black2);
