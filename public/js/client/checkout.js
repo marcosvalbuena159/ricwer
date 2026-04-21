@@ -1,22 +1,30 @@
-// ─── RICWER CLIENT — checkout.js ────────────────────────────────────
+// ─── RICWER CLIENT — checkout.js (Wompi Edition) ────────────────────
+// Requiere el script de Wompi en el HTML:
+// <script src="https://checkout.wompi.co/widget.js"></script>
+
 let CHECKOUT = {
-  tipoEntrega: 'recogida',   // 'recogida' | 'domicilio'
-  direccionId: null,
-  direccionNueva: null,       // objeto si es dirección nueva
-  metodoPago: 'nequi',
-  cupon: null,
-  cuponDescuento: 0,
-  costoEnvio: 0,
+  tipoEntrega:     'recogida',  // 'recogida' | 'domicilio'
+  direccionId:     null,
+  metodoPago:      'wompi',     // 'wompi' | 'efectivo'
+  cupon:           null,
+  cuponDescuento:  0,
+  costoEnvio:      0,
 };
 
-const COSTO_ENVIO_DOM = 10000; // $10.000 fijo (personalizar)
+const COSTO_ENVIO_DOM = 10000; // $10.000 fijo
+
+// ─── WOMPI CONFIG ────────────────────────────────────────────────────
+// Cambia por tu llave pública de Wompi (Producción o Sandbox)
+// Sandbox:    pub_test_XXXXXXXXXXXXXXXX
+// Producción: pub_live_XXXXXXXXXXXXXXXX
+const WOMPI_PUB_KEY = 'pub_test_XXXXXXXXXXXXXXXXXXXXXXXX';
+
+// URL a la que Wompi redirige tras el pago (tu dominio)
+const WOMPI_REDIRECT_URL = window.location.origin + '/cliente.html#ordenes';
 
 const METODOS_PAGO = [
-  { id: 'nequi',       icon: '📱', label: 'Nequi',             sub: 'Pago inmediato' },
-  { id: 'daviplata',   icon: '📲', label: 'Daviplata',         sub: 'Pago inmediato' },
-  { id: 'transferencia', icon: '🏦', label: 'Transferencia',   sub: 'Bancolombia / PSE' },
-  { id: 'tarjeta',     icon: '💳', label: 'Tarjeta',           sub: 'Crédito o débito' },
-  { id: 'efectivo',    icon: '💵', label: 'Contra entrega',    sub: 'Solo domicilio' },
+  { id: 'wompi',   icon: '💳', label: 'Pagar en línea',    sub: 'Tarjeta, Nequi, PSE, Bancolombia · Powered by Wompi' },
+  { id: 'efectivo', icon: '💵', label: 'Contra entrega',   sub: 'Solo domicilio · El cobrador te visitará' },
 ];
 
 // ─── RENDER CHECKOUT ─────────────────────────────────────────────────
@@ -27,7 +35,6 @@ async function renderCheckout() {
   const summaryEl = document.getElementById('checkout-summary');
   if (!stepsEl || !summaryEl) return;
 
-  // Cargar direcciones
   const { data: dirs } = await sb
     .from('direcciones')
     .select('*')
@@ -37,7 +44,7 @@ async function renderCheckout() {
 
   const totals = getCartTotals(CHECKOUT.cuponDescuento);
   totals.envio = CHECKOUT.tipoEntrega === 'domicilio' ? COSTO_ENVIO_DOM : 0;
-  const totalFinal = totals.subtotal - totals.descuento + totals.envio;
+  const totalFinal = Math.max(0, totals.subtotal - totals.descuento + totals.envio);
 
   // ── STEPS ──
   stepsEl.innerHTML = `
@@ -110,34 +117,40 @@ async function renderCheckout() {
         <div class="step-title">MÉTODO DE PAGO</div>
       </div>
       <div class="payment-methods">
-        ${METODOS_PAGO.filter(m => CHECKOUT.tipoEntrega === 'domicilio' || m.id !== 'efectivo').map(m => `
-          <button class="pay-option ${CHECKOUT.metodoPago === m.id ? 'active' : ''}" onclick="setMetodoPago('${m.id}')">
-            <span class="pay-icon">${m.icon}</span>
-            <span>
-              <span class="pay-label">${m.label}</span>
-              <span class="pay-sub">${m.sub}</span>
-            </span>
-          </button>
-        `).join('')}
+        ${METODOS_PAGO
+          .filter(m => CHECKOUT.tipoEntrega === 'domicilio' || m.id !== 'efectivo')
+          .map(m => `
+            <button class="pay-option ${CHECKOUT.metodoPago === m.id ? 'active' : ''}" onclick="setMetodoPago('${m.id}')">
+              <span class="pay-icon">${m.icon}</span>
+              <span>
+                <span class="pay-label">${m.label}</span>
+                <span class="pay-sub">${m.sub}</span>
+              </span>
+            </button>
+          `).join('')}
       </div>
-      ${CHECKOUT.metodoPago === 'nequi' || CHECKOUT.metodoPago === 'daviplata' ? `
+
+      ${CHECKOUT.metodoPago === 'wompi' ? `
         <div style="margin-top:16px;padding:14px;background:var(--surface2);border-radius:var(--radius);font-size:13px;color:var(--text-muted)">
-          📱 Número: <strong style="color:var(--gold)">300 000 0000</strong><br>
-          Envía el comprobante a WhatsApp y tu pedido será confirmado en minutos.
+          🔒 Pago 100% seguro procesado por <strong style="color:var(--text)">Wompi (Bancolombia)</strong><br>
+          Acepta: Tarjeta crédito/débito, Nequi, PSE, Bancolombia a la mano.<br>
+          Al confirmar se abrirá la ventana de pago.
         </div>
       ` : ''}
-      ${CHECKOUT.metodoPago === 'transferencia' ? `
+      ${CHECKOUT.metodoPago === 'efectivo' ? `
         <div style="margin-top:16px;padding:14px;background:var(--surface2);border-radius:var(--radius);font-size:13px;color:var(--text-muted)">
-          🏦 Bancolombia Ahorros · CC 123-456789-12<br>
-          A nombre de <strong style="color:var(--text)">RICWER SAS</strong><br>
-          Envía el soporte por WhatsApp.
+          💵 Paga al momento de recibir tu pedido en la puerta.<br>
+          Ten el dinero exacto listo. Solo disponible para domicilios.
         </div>
       ` : ''}
     </div>
 
     <!-- CONFIRMAR -->
     <button class="btn btn-gold btn-full btn-lg" onclick="confirmarOrden()" id="btn-confirmar" style="margin-top:8px">
-      Confirmar pedido · ${fmtMoneyFull(totalFinal)}
+      ${CHECKOUT.metodoPago === 'wompi'
+        ? `Ir a pagar · ${fmtMoneyFull(totalFinal)}`
+        : `Confirmar pedido · ${fmtMoneyFull(totalFinal)}`
+      }
     </button>
     <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:10px">
       Al confirmar aceptas nuestros <button class="btn btn-ghost" style="font-size:11px;padding:0;letter-spacing:0;text-transform:none" onclick="openModal('modal-terminos')">términos y condiciones</button>
@@ -171,10 +184,16 @@ async function renderCheckout() {
       ${CHECKOUT.cuponDescuento > 0 ? `<div class="os-row" style="color:var(--green)"><span>Descuento</span><span>-${fmtMoneyFull(CHECKOUT.cuponDescuento)}</span></div>` : ''}
       <div class="os-row"><span>Envío</span><span>${totals.envio > 0 ? fmtMoneyFull(totals.envio) : '<span style="color:var(--green)">Gratis</span>'}</span></div>
       <div class="os-row total"><span>TOTAL</span><span>${fmtMoneyFull(totalFinal)}</span></div>
+
+      <div style="margin-top:16px;text-align:center">
+        <img src="https://wompi.com/assets/img/logos/wompi-logo.svg"
+          alt="Wompi" style="height:22px;opacity:0.5;filter:grayscale(1)" />
+      </div>
     </div>
   `;
 }
 
+// ─── HELPERS DE ENTREGA / PAGO ────────────────────────────────────────
 function renderDireccionesHTML(dirs) {
   return `
     <div style="margin-bottom:16px">
@@ -223,7 +242,7 @@ function renderDireccionesHTML(dirs) {
 function setTipoEntrega(tipo) {
   CHECKOUT.tipoEntrega = tipo;
   CHECKOUT.direccionId = null;
-  if (tipo === 'recogida') CHECKOUT.metodoPago = 'nequi'; // reset pago
+  if (tipo === 'recogida') CHECKOUT.metodoPago = 'wompi';
   renderCheckout();
 }
 
@@ -238,7 +257,7 @@ function showNuevaDireccion() {
 }
 
 async function guardarNuevaDireccion() {
-  const dir   = document.getElementById('nd-dir')?.value.trim();
+  const dir    = document.getElementById('nd-dir')?.value.trim();
   const ciudad = document.getElementById('nd-ciudad')?.value.trim() || 'Medellín';
   const depto  = document.getElementById('nd-depto')?.value.trim() || 'Antioquia';
   const tel    = document.getElementById('nd-tel')?.value.trim();
@@ -274,7 +293,6 @@ async function aplicarCupon() {
 
   if (error || !data) { toast('Cupón no válido o expirado', 'error'); return; }
 
-  // Validar fechas
   const hoy = new Date();
   if (data.fecha_inicio && new Date(data.fecha_inicio) > hoy) { toast('El cupón aún no está activo', 'error'); return; }
   if (data.fecha_fin && new Date(data.fecha_fin) < hoy) { toast('El cupón ha expirado', 'error'); return; }
@@ -298,14 +316,11 @@ async function confirmarOrden() {
   if (CHECKOUT.tipoEntrega === 'domicilio' && !CHECKOUT.direccionId) {
     toast('Selecciona o agrega una dirección de envío', 'error'); return;
   }
-  if (!CHECKOUT.metodoPago) {
-    toast('Selecciona un método de pago', 'error'); return;
-  }
 
-  const nombre  = document.getElementById('co-nombre')?.value.trim();
+  const nombre   = document.getElementById('co-nombre')?.value.trim();
   const apellido = document.getElementById('co-apellido')?.value.trim();
-  const tel     = document.getElementById('co-tel')?.value.trim();
-  const notas   = document.getElementById('co-notas')?.value.trim();
+  const tel      = document.getElementById('co-tel')?.value.trim();
+  const notas    = document.getElementById('co-notas')?.value.trim();
 
   if (!nombre || !tel) { toast('Completa nombre y teléfono', 'error'); return; }
 
@@ -315,16 +330,16 @@ async function confirmarOrden() {
   try {
     const totals = getCartTotals(CHECKOUT.cuponDescuento);
     totals.envio = CHECKOUT.tipoEntrega === 'domicilio' ? COSTO_ENVIO_DOM : 0;
-    const totalFinal = totals.subtotal - totals.descuento + totals.envio;
+    const totalFinal = Math.max(0, totals.subtotal - totals.descuento + totals.envio);
 
-    // Obtener dirección texto
+    // Dirección texto
     let dirTexto = CHECKOUT.tipoEntrega === 'recogida' ? 'Recogida en tienda — Medellín' : null;
     if (CHECKOUT.tipoEntrega === 'domicilio' && CHECKOUT.direccionId) {
       const { data: d } = await sb.from('direcciones').select('*').eq('id', CHECKOUT.direccionId).single();
       if (d) dirTexto = `${d.direccion}, ${d.ciudad}, ${d.departamento}`;
     }
 
-    // Crear orden
+    // ── Crear orden en Supabase (estado_pago: 'pendiente') ──
     const { data: orden, error: errOrden } = await sb.from('ordenes').insert({
       user_id:         APP.user.id,
       estado:          'pendiente',
@@ -343,7 +358,7 @@ async function confirmarOrden() {
 
     if (errOrden) throw errOrden;
 
-    // Crear items
+    // ── Insertar items de la orden ──
     const items = CARRITO.map(c => ({
       orden_id:        orden.id,
       producto_id:     c.producto_id,
@@ -355,14 +370,20 @@ async function confirmarOrden() {
       precio_unitario: c.precio_unitario,
       subtotal:        c.precio_unitario * c.cantidad,
     }));
-    await sb.from('orden_items').insert(items);
 
-    // Actualizar usos cupón
+    const { error: errItems } = await sb.from('orden_items').insert(items);
+    if (errItems) {
+      // Si falla el insert de items, eliminar la orden huérfana
+      await sb.from('ordenes').delete().eq('id', orden.id);
+      throw errItems;
+    }
+
+    // ── Actualizar usos cupón ──
     if (CHECKOUT.cupon) {
       await sb.from('cupones').update({ usos_actuales: CHECKOUT.cupon.usos_actuales + 1 }).eq('id', CHECKOUT.cupon.id);
     }
 
-    // Actualizar stock variantes
+    // ── Reducir stock ──
     for (const c of CARRITO) {
       if (c.variante_id) {
         const { data: v } = await sb.from('producto_variantes').select('stock').eq('id', c.variante_id).single();
@@ -370,34 +391,174 @@ async function confirmarOrden() {
       }
     }
 
-    // Vaciar carrito
+    // ── Limpiar carrito local ──
     await clearCarrito();
+    CHECKOUT.cupon = null;
+    CHECKOUT.cuponDescuento = 0;
 
-    // Reset checkout state
-    CHECKOUT = { tipoEntrega: 'recogida', direccionId: null, metodoPago: 'nequi', cupon: null, cuponDescuento: 0, costoEnvio: 0 };
-
-    // Mostrar confirmación
-    mostrarConfirmacionOrden(orden);
+    // ── Enrutar según método de pago ──
+    if (CHECKOUT.metodoPago === 'wompi') {
+      abrirWompi(orden, totalFinal, nombre, apellido, tel);
+    } else {
+      // Contra entrega: confirmar directamente
+      CHECKOUT = { tipoEntrega: 'recogida', direccionId: null, metodoPago: 'wompi', cupon: null, cuponDescuento: 0, costoEnvio: 0 };
+      mostrarConfirmacionOrden(orden);
+    }
 
   } catch (err) {
-    console.error(err);
+    console.error('[confirmarOrden]', err);
     toast('Error al procesar el pedido. Intenta de nuevo.', 'error');
     if (btn) { btn.disabled = false; btn.textContent = 'Confirmar pedido'; }
   }
 }
 
+// ─── WOMPI WIDGET ─────────────────────────────────────────────────────
+// Documentación: https://docs.wompi.co/docs/colombia/widget/
+//
+// El widget de Wompi abre una ventana/iframe de pago.
+// Al completar el pago, Wompi redirige a WOMPI_REDIRECT_URL con parámetros
+// en la URL: ?id=TRANSACTION_ID&...
+// Debes verificar el estado del pago en tu backend o con la API de Wompi.
+
+function abrirWompi(orden, totalCOP, nombre, apellido, tel) {
+  // Wompi requiere el monto en CENTAVOS (COP × 100)
+  const amountInCents = Math.round(totalCOP * 100);
+
+  // Referencia única por orden (máx 50 chars)
+  const referencia = orden.numero_orden || ('RW-' + orden.id.slice(0, 8).toUpperCase());
+
+  // Guardar referencia en la orden (sin await, no bloquea)
+  sb.from('ordenes').update({ referencia_pago: referencia }).eq('id', orden.id);
+
+  // Construir la URL de redirect con el número de orden
+  const redirectUrl = `${WOMPI_REDIRECT_URL}&orden_id=${orden.id}`;
+
+  // ── Abrir el widget de Wompi ──
+  // Requiere que <script src="https://checkout.wompi.co/widget.js"> esté en el HTML
+  const checkout = new WidgetCheckout({
+    currency:          'COP',
+    amountInCents:     amountInCents,
+    reference:         referencia,
+    publicKey:         WOMPI_PUB_KEY,
+    redirectUrl:       redirectUrl,          // Wompi redirige aquí al terminar
+    customerData: {
+      email:      APP.user.email || '',
+      fullName:   `${nombre} ${apellido}`.trim(),
+      phoneNumber: tel.replace(/\D/g, ''),  // solo dígitos
+      phoneNumberPrefix: '+57',
+      legalId:    '',                        // opcional: cédula
+      legalIdType: 'CC',
+    },
+    // Opcional: fija el tipo de pago (quitar para mostrar todos)
+    // paymentMethod: { type: 'NEQUI' },
+  });
+
+  checkout.open(result => {
+    // Este callback se ejecuta si el usuario CIERRA el widget sin pagar
+    // o cuando Wompi llama al redirect (depende del modo).
+    // Lo más robusto es verificar el estado en la página de retorno.
+    const transaction = result?.transaction;
+    if (transaction?.status === 'APPROVED') {
+      _onPagoAprobado(orden, transaction.id);
+    } else if (transaction?.status === 'DECLINED') {
+      toast('❌ Pago rechazado. Intenta con otro método.', 'error');
+      // Restaurar botón para que puedan reintentar
+      const btn = document.getElementById('btn-confirmar');
+      if (btn) { btn.disabled = false; btn.textContent = `Ir a pagar · ${fmtMoneyFull(totalCOP)}`; }
+    }
+    // Si cerró sin pagar: la orden queda en estado 'pendiente'
+    // y el admin puede gestionarla.
+  });
+}
+
+// ─── VERIFICAR PAGO AL VOLVER DE WOMPI ───────────────────────────────
+// Llama esto en el DOMContentLoaded de cliente.html
+// cuando detectas los parámetros de Wompi en la URL.
+async function verificarRetornoWompi() {
+  const params     = new URLSearchParams(window.location.search);
+  const transId    = params.get('id');
+  const ordenId    = params.get('orden_id');
+
+  if (!transId || !ordenId) return; // No viene de Wompi
+
+  // Limpiar URL
+  window.history.replaceState({}, '', window.location.pathname + '#ordenes');
+
+  try {
+    // Consultar estado de la transacción directamente a la API de Wompi
+    const resp = await fetch(`https://production.wompi.co/v1/transactions/${transId}`);
+    // Para sandbox: https://sandbox.wompi.co/v1/transactions/${transId}
+    const json = await resp.json();
+    const status = json?.data?.status;
+
+    if (status === 'APPROVED') {
+      // Actualizar estado de la orden en Supabase
+      await sb.from('ordenes').update({
+        estado_pago:      'pagado',
+        estado:           'confirmado',
+        referencia_pago:  transId,
+      }).eq('id', ordenId);
+
+      // Obtener orden para mostrar confirmación
+      const { data: orden } = await sb.from('ordenes').select('*').eq('id', ordenId).single();
+      showSection('ordenes');
+      toast('✅ ¡Pago confirmado! Tu pedido está en camino.', 'success');
+
+    } else if (status === 'DECLINED') {
+      await sb.from('ordenes').update({ estado_pago: 'rechazado' }).eq('id', ordenId);
+      showSection('checkout');
+      toast('❌ Pago rechazado. Verifica tu método de pago.', 'error');
+
+    } else if (status === 'VOIDED') {
+      await sb.from('ordenes').update({ estado_pago: 'cancelado' }).eq('id', ordenId);
+      showSection('home');
+      toast('Pago cancelado.', '');
+
+    } else {
+      // PENDING: el pago aún se está procesando (PSE, Nequi con demora)
+      showSection('ordenes');
+      toast('⏳ Pago en procesamiento. Te notificaremos cuando se confirme.', '');
+    }
+
+  } catch (e) {
+    console.error('[verificarRetornoWompi]', e);
+  }
+}
+
+// ─── CALLBACK PAGO APROBADO (desde widget en línea) ──────────────────
+async function _onPagoAprobado(orden, transactionId) {
+  await sb.from('ordenes').update({
+    estado_pago:     'pagado',
+    estado:          'confirmado',
+    referencia_pago: transactionId,
+  }).eq('id', orden.id);
+
+  CHECKOUT = { tipoEntrega: 'recogida', direccionId: null, metodoPago: 'wompi', cupon: null, cuponDescuento: 0, costoEnvio: 0 };
+  mostrarConfirmacionOrden({ ...orden, estado_pago: 'pagado' });
+}
+
+// ─── PANTALLA DE CONFIRMACIÓN ─────────────────────────────────────────
 function mostrarConfirmacionOrden(orden) {
-  const stepsEl = document.getElementById('checkout-steps');
+  const stepsEl   = document.getElementById('checkout-steps');
   const summaryEl = document.getElementById('checkout-summary');
+
+  const esPagado = orden.estado_pago === 'pagado';
+
   if (stepsEl) stepsEl.innerHTML = `
     <div style="text-align:center;padding:48px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg)">
-      <div style="font-size:64px;margin-bottom:16px">🎉</div>
-      <h2 style="font-family:var(--font-display);font-size:36px;letter-spacing:3px;color:var(--white);margin-bottom:8px">¡PEDIDO CONFIRMADO!</h2>
-      <p style="color:var(--gold);font-family:var(--font-display);font-size:22px;letter-spacing:2px;margin-bottom:16px">${orden.numero_orden}</p>
+      <div style="font-size:64px;margin-bottom:16px">${esPagado ? '🎉' : '✅'}</div>
+      <h2 style="font-family:var(--font-display);font-size:36px;letter-spacing:3px;color:var(--white);margin-bottom:8px">
+        ${esPagado ? '¡PEDIDO PAGADO!' : '¡PEDIDO RECIBIDO!'}
+      </h2>
+      <p style="color:var(--gold);font-family:var(--font-display);font-size:22px;letter-spacing:2px;margin-bottom:16px">
+        ${orden.numero_orden}
+      </p>
       <p style="color:var(--text-muted);font-size:14px;line-height:1.7;margin-bottom:32px;max-width:400px;margin-left:auto;margin-right:auto">
-        Recibiste un correo de confirmación. ${CHECKOUT.tipoEntrega === 'recogida'
-          ? 'Te avisaremos cuando tu pedido esté listo para recoger en tienda.'
-          : 'Tu pedido llegará en 2-5 días hábiles.'
+        ${esPagado
+          ? (orden.tipo_entrega === 'recogida'
+              ? 'Tu pago fue aprobado. Te avisaremos cuando el pedido esté listo para recoger.'
+              : 'Tu pago fue aprobado. Tu pedido llegará en 2-5 días hábiles.')
+          : 'Recibimos tu pedido. Uno de nuestros asesores te contactará para coordinar el pago y la entrega.'
         }
       </p>
       <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
