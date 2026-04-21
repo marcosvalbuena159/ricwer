@@ -56,7 +56,7 @@ body {
 /* ─── LOADER ─────────────────────────────────────────────────────── */
 #app-loader {
   position: fixed; inset: 0;
-  background: var(--cream);
+  background: var(--black);
   display: flex; align-items: center; justify-content: center;
   flex-direction: column; gap: 20px;
   z-index: 9999;
@@ -183,13 +183,13 @@ body {
   min-height: calc(100vh - var(--nav-h));
   display: flex; align-items: center;
   overflow: hidden;
-  background: var(--cream);
+  background: var(--black);
 }
 .hero-bg {
   position: absolute; inset: 0;
   background:
-    radial-gradient(ellipse 70% 80% at 80% 50%, rgba(139,100,30,0.14) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 60% at 10% 80%, rgba(201,168,76,0.10) 0%, transparent 50%);
+    radial-gradient(ellipse 70% 80% at 80% 50%, rgba(201,168,76,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 60% at 10% 80%, rgba(201,168,76,0.06) 0%, transparent 50%);
 }
 .hero-grain {
   position: absolute; inset: 0; opacity: 0.03;
@@ -220,7 +220,7 @@ body {
 .hero-visual {
   position: absolute; right: -60px; top: 50%; transform: translateY(-50%);
   font-size: clamp(180px, 22vw, 340px);
-  opacity: 0.07;
+  opacity: 0.05;
   animation: heroFloat 8s ease-in-out infinite;
   pointer-events: none; user-select: none;
 }
@@ -245,10 +245,10 @@ body {
 
 .btn-outline {
   background: transparent;
-  border: 1px solid var(--border-light);
-  color: var(--text);
+  border: 1px solid rgba(26,20,16,0.35);
+  color: var(--black);
 }
-.btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+.btn-outline:hover { border-color: var(--gold); color: var(--gold-dark); background: rgba(201,168,76,0.08); }
 
 .btn-ghost {
   background: none; border: none;

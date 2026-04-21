@@ -124,14 +124,19 @@ function renderHomeCategorias() {
 async function renderHomeDestacados() {
   const el = document.getElementById('home-destacados');
   if (!el) return;
-  const { data: prods } = await sb
-    .from('productos')
-    .select('*, producto_variantes(*), producto_imagenes(*)')
-    .eq('activo', true)
-    .eq('destacado', true)
-    .limit(8);
-  if (!prods?.length) { el.style.display = 'none'; return; }
-  el.innerHTML = prods.map(p => productCardHTML(p)).join('');
+  try {
+    const { data: prods, error } = await sb
+      .from('productos')
+      .select('*, producto_variantes(*), producto_imagenes(*)')
+      .eq('activo', true)
+      .eq('destacado', true)
+      .limit(8);
+    if (error) { console.warn('[destacados]', error.message); el.style.display = 'none'; return; }
+    if (!prods?.length) { el.style.display = 'none'; return; }
+    el.innerHTML = prods.map(p => productCardHTML(p)).join('');
+  } catch(e) {
+    el.style.display = 'none';
+  }
 }
 
 // ─── SEARCH ──────────────────────────────────────────────────────────
@@ -151,13 +156,22 @@ function onSearchInput() {
 
 // ─── NOTIFICACIONES ──────────────────────────────────────────────────
 async function loadNotificaciones() {
-  const { data } = await sb
-    .from('notificaciones')
-    .select('*')
-    .eq('user_id', APP.user.id)
-    .order('created_at', { ascending: false })
-    .limit(20);
-  renderNotifPanel(data || []);
+  try {
+    const { data, error } = await sb
+      .from('notificaciones')
+      .select('*')
+      .eq('user_id', APP.user.id)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    if (error) {
+      console.warn('[notificaciones]', error.message);
+      renderNotifPanel([]);
+      return;
+    }
+    renderNotifPanel(data || []);
+  } catch (e) {
+    renderNotifPanel([]);
+  }
 }
 
 function renderNotifPanel(notifs) {

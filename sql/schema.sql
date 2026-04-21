@@ -649,14 +649,99 @@ WHERE NOT EXISTS (
 -- ══════════════════════════════════════════════════════
 -- VERIFICACIÓN FINAL
 -- ══════════════════════════════════════════════════════
--- Ejecuta estas consultas para confirmar:
---
--- 1. Ver todas las políticas creadas:
---    SELECT tablename, policyname, cmd FROM pg_policies WHERE schemaname='public' ORDER BY tablename;
---
--- 2. Verificar que todos los usuarios tienen perfil:
---    SELECT u.email, p.id IS NOT NULL as tiene_perfil, p.rol
---    FROM auth.users u LEFT JOIN public.profiles p ON p.id = u.id;
---
--- 3. Verificar que is_admin() funciona (como admin):
---    SELECT public.is_admin();  → debe retornar TRUE si eres admin
+
+-- =====================================================
+-- RICWER — FIX ERRORES 400 (FINAL SIN ERRORES 42703)
+-- =====================================================
+
+-- ─── PASO 1: RLS habilitado ───────────────────────────
+ALTER TABLE public.notificaciones     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.productos          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categorias         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.producto_variantes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.producto_imagenes  ENABLE ROW LEVEL SECURITY;
+
+-- ─── PASO 2: Políticas notificaciones ────────────────
+DROP POLICY IF EXISTS "notif_all"    ON public.notificaciones;
+DROP POLICY IF EXISTS "notif_select" ON public.notificaciones;
+DROP POLICY IF EXISTS "notif_insert" ON public.notificaciones;
+DROP POLICY IF EXISTS "notif_update" ON public.notificaciones;
+
+CREATE POLICY "notif_select"
+ON public.notificaciones FOR SELECT
+USING (user_id = auth.uid() OR public.is_admin());
+
+CREATE POLICY "notif_insert"
+ON public.notificaciones FOR INSERT
+WITH CHECK (public.is_admin() OR user_id = auth.uid());
+
+CREATE POLICY "notif_update"
+ON public.notificaciones FOR UPDATE
+USING (user_id = auth.uid() OR public.is_admin())
+WITH CHECK (user_id = auth.uid() OR public.is_admin());
+
+-- ─── PASO 3: Políticas productos ─────────────────────
+DROP POLICY IF EXISTS "productos_select" ON public.productos;
+DROP POLICY IF EXISTS "productos_write"  ON public.productos;
+
+CREATE POLICY "productos_select"
+ON public.productos FOR SELECT
+USING (true);
+
+CREATE POLICY "productos_write"
+ON public.productos FOR ALL
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
+-- ─── PASO 4: Políticas variantes e imágenes ──────────
+DROP POLICY IF EXISTS "variantes_select" ON public.producto_variantes;
+DROP POLICY IF EXISTS "variantes_write"  ON public.producto_variantes;
+DROP POLICY IF EXISTS "imagenes_select"  ON public.producto_imagenes;
+DROP POLICY IF EXISTS "imagenes_write"   ON public.producto_imagenes;
+
+CREATE POLICY "variantes_select"
+ON public.producto_variantes FOR SELECT USING (true);
+
+CREATE POLICY "variantes_write"
+ON public.producto_variantes FOR ALL
+USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+CREATE POLICY "imagenes_select"
+ON public.producto_imagenes FOR SELECT USING (true);
+
+CREATE POLICY "imagenes_write"
+ON public.producto_imagenes FOR ALL
+USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+-- ─── PASO 5: Políticas categorías ────────────────────
+DROP POLICY IF EXISTS "categorias_select" ON public.categorias;
+DROP POLICY IF EXISTS "categorias_write"  ON public.categorias;
+
+CREATE POLICY "categorias_select"
+ON public.categorias FOR SELECT USING (true);
+
+CREATE POLICY "categorias_write"
+ON public.categorias FOR ALL
+USING (public.is_admin())
+WITH CHECK (public.is_admin());
+
+-- ─── PASO 6: FIX COLUMNAS (CLAVE PARA ERROR 42703) ───
+
+-- asegurar columna activo
+ALTER TABLE public.productos
+ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE;
+
+-- asegurar columna destacado
+ALTER TABLE public.productos
+ADD COLUMN IF NOT EXISTS destacado BOOLEAN DEFAULT FALSE;
+
+-- ─── PASO 7: ÍNDICES ─────────────────────────────────
+
+CREATE INDEX IF NOT EXISTS idx_notificaciones_user_id
+ON public.notificaciones(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_productos_activo
+ON public.productos(activo);
+
+CREATE INDEX IF NOT EXISTS idx_productos_destacado
+ON public.productos(activo, destacado);
