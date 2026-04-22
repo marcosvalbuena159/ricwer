@@ -3,9 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <meta name="theme-color" content="#0D2D6B">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Ricwer">
+  <meta name="theme-color" content="#1a1410">
   <title>Ricwer — Sistema de Gestión</title>
   <link rel="stylesheet" href="./css/styles.css">
 </head>
@@ -18,52 +16,73 @@
     <div class="sidebar-logo">
       <div class="logo-mark">
         <div>
-          <div class="logo-name">Ricwer</div>
-          <div class="logo-sub">Calidad y Economia</div>
+          <div class="logo-name">RIC<span>W</span>ER</div>
+          <div class="logo-sub">Administración</div>
         </div>
       </div>
     </div>
     <nav>
       <div class="nav-group-label">Principal</div>
-      <button data-section="dashboard" class="active" onclick="showSection('dashboard')">
+      <button data-sec="dashboard" class="active" onclick="showSection('dashboard')">
         <span class="nav-icon">◈</span> Dashboard
       </button>
 
       <div class="nav-group-label">Inventario</div>
-      <button data-section="productos" onclick="showSection('productos')">
+      <button data-sec="productos" onclick="showSection('productos')">
         <span class="nav-icon">👟</span> Productos
       </button>
 
       <div class="nav-group-label">Operaciones</div>
-      <button data-section="ventas" onclick="showSection('ventas')">
+      <button data-sec="ventas" onclick="showSection('ventas')">
         <span class="nav-icon">💰</span> Ventas
       </button>
-      <button data-section="pedidos" onclick="showSection('pedidos')">
+      <button data-sec="pedidos" onclick="showSection('pedidos')">
         <span class="nav-icon">📦</span> Pedidos
         <span class="nav-badge" id="badge-pedidos" style="display:none"></span>
       </button>
-      <button data-section="arreglos" onclick="showSection('arreglos')">
+      <button data-sec="arreglos" onclick="showSection('arreglos')">
         <span class="nav-icon">🔧</span> Arreglos
         <span class="nav-badge" id="badge-arreglos" style="display:none"></span>
       </button>
 
       <div class="nav-group-label">Clientes</div>
-      <button data-section="mensajes" onclick="showSection('mensajes')">
+      <button data-sec="mensajes" onclick="showSection('mensajes')">
         <span class="nav-icon">💬</span> Mensajes
         <span class="nav-badge" id="badge-mensajes" style="display:none"></span>
       </button>
     </nav>
-    <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,0.06)">
-      <div style="font-size:11px;color:rgba(255,255,255,0.25);text-align:center">Ricwer v2.0 · 2025</div>
+
+    <!-- Perfil en sidebar -->
+    <div id="sidebar-profile" style="padding:14px 16px;border-top:1px solid rgba(255,255,255,0.06)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div id="sb-avatar" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dark),var(--gold-light));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;flex-shrink:0">A</div>
+        <div style="min-width:0">
+          <div id="sb-name" style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Admin</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.30);letter-spacing:1px;text-transform:uppercase">Administrador</div>
+        </div>
+      </div>
+      <button onclick="adminSignOut()" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:var(--radius-sm);color:rgba(255,255,255,0.55);font-size:11px;font-family:var(--font-body);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all var(--transition);"
+        onmouseover="this.style.background='rgba(201,168,76,0.15)';this.style.color='var(--gold)';this.style.borderColor='var(--gold-border)'"
+        onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.55)';this.style.borderColor='rgba(255,255,255,0.10)'">
+        ↪ Cerrar sesión
+      </button>
     </div>
   </aside>
+
+  <!-- Overlay mobile -->
+  <div id="sidebar-overlay" onclick="closeSidebar()" style="display:none;position:fixed;inset:0;background:rgba(26,20,16,0.55);z-index:99;"></div>
 
   <!-- ─── MAIN CONTENT ─── -->
   <div id="content">
     <div id="topbar">
-      <button id="menu-toggle">☰</button>
+      <button id="menu-toggle" onclick="toggleSidebar()">☰</button>
       <div class="topbar-title" id="topbar-title">Dashboard</div>
       <div class="topbar-date" id="topbar-date"></div>
+      <!-- Perfil topbar (desktop) -->
+      <div style="display:flex;align-items:center;gap:10px;margin-left:auto">
+        <div id="tb-admin-name" style="font-size:12px;color:var(--text-muted);letter-spacing:0.3px"></div>
+        <div id="tb-avatar" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dark),var(--gold-light));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;cursor:pointer;flex-shrink:0" onclick="adminSignOut()" title="Cerrar sesión">A</div>
+      </div>
     </div>
 
     <main>
@@ -100,7 +119,7 @@
                 <span class="search-icon">🔍</span>
                 <input type="text" id="prod-search" placeholder="Buscar por nombre, marca, talla, color..." oninput="renderProductos()">
               </div>
-              <select id="prod-cat-filter" onchange="renderProductos()" style="border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;font-size:13px;background:var(--surface);color:var(--text);font-family:var(--font-body)">
+              <select class="filter-select" id="prod-cat-filter" onchange="renderProductos()">
                 <option value="">Todas las categorías</option>
                 <option>Tenis</option><option>Botines</option><option>Sandalias</option><option>Tacones</option>
                 <option>Botas</option><option>Mocasines</option><option>Baletas</option><option>Otro</option>
@@ -110,7 +129,7 @@
               <table>
                 <thead><tr>
                   <th>Producto</th><th>Categoría</th><th>Talla</th><th>Color</th>
-                  <th>Costo</th><th>Precio venta</th><th>Stock</th><th>Estado</th><th></th>
+                  <th>Costo</th><th>Precio</th><th>Stock</th><th>Estado</th><th></th>
                 </tr></thead>
                 <tbody id="prod-tbody"></tbody>
               </table>
@@ -164,7 +183,7 @@
                 <span class="search-icon">🔍</span>
                 <input type="text" id="ped-search" placeholder="Buscar cliente, descripción..." oninput="renderPedidos()">
               </div>
-              <select id="ped-estado-filter" onchange="renderPedidos()" style="border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;font-size:13px;background:var(--surface);color:var(--text);font-family:var(--font-body)">
+              <select class="filter-select" id="ped-estado-filter" onchange="renderPedidos()">
                 <option value="">Todos los estados</option>
                 <option>Pendiente</option><option>En proceso</option>
                 <option>Listo para entregar</option><option>Entregado</option><option>Cancelado</option>
@@ -173,7 +192,7 @@
             <div class="tbl-wrap">
               <table>
                 <thead><tr>
-                  <th>Fecha entrega</th><th>Cliente</th><th>Descripción</th>
+                  <th>Entrega</th><th>Cliente</th><th>Descripción</th>
                   <th>Total / Pagado</th><th>Saldo</th><th>Estado</th><th>Acciones</th>
                 </tr></thead>
                 <tbody id="ped-tbody"></tbody>
@@ -199,7 +218,7 @@
                 <span class="search-icon">🔍</span>
                 <input type="text" id="arr-search" placeholder="Buscar cliente, tipo de arreglo..." oninput="renderArreglos()">
               </div>
-              <select id="arr-estado-filter" onchange="renderArreglos()" style="border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;font-size:13px;background:var(--surface);color:var(--text);font-family:var(--font-body)">
+              <select class="filter-select" id="arr-estado-filter" onchange="renderArreglos()">
                 <option value="">Todos los estados</option>
                 <option>Recibido</option><option>En proceso</option><option>Listo</option><option>Entregado</option>
               </select>
@@ -251,17 +270,16 @@
             </div>
           </div>
         </div>
-
         <div id="msg-detail-view" style="display:none">
-          <button class="btn btn-ghost btn-sm" onclick="closeMsgDetail()" style="margin-bottom:16px">← Volver a mensajes</button>
-          <div id="msg-detail-content" class="msg-detail-card"></div>
+          <button class="btn btn-ghost btn-sm" onclick="closeMsgDetail()" style="margin-bottom:16px">← Volver</button>
+          <div id="msg-detail-content"></div>
           <div class="panel" style="margin-top:16px">
             <div class="panel-header"><div class="panel-title">💬 Conversación</div></div>
             <div class="panel-body">
               <div id="msg-thread" style="margin-bottom:16px"></div>
               <div class="msg-reply-box">
-                <label style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);display:block;margin-bottom:6px">Tu respuesta</label>
-                <textarea id="msg-reply-text" rows="4" placeholder="Escribe tu respuesta al cliente..." style="width:100%;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-family:var(--font-body);font-size:14px;resize:vertical;outline:none;background:var(--surface2);color:var(--text);transition:all .15s"></textarea>
+                <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);display:block;margin-bottom:6px">Tu respuesta</label>
+                <textarea id="msg-reply-text" rows="4" placeholder="Escribe tu respuesta al cliente..."></textarea>
                 <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
                   <button class="btn btn-primary" onclick="sendAdminReply()">✉️ Enviar respuesta</button>
                   <select id="msg-change-estado" class="filter-select">
@@ -270,7 +288,7 @@
                     <option value="respondido">Respondido</option>
                     <option value="cerrado">Cerrado</option>
                   </select>
-                  <button class="btn btn-ghost btn-sm" onclick="changeMsgEstado()">Cambiar estado</button>
+                  <button class="btn btn-ghost btn-sm" onclick="changeMsgEstado()">Aplicar</button>
                 </div>
               </div>
             </div>
@@ -334,7 +352,7 @@
       </div>
       <div class="field"><label>Cantidad</label><input id="v-cant" type="number" min="1" value="1" oninput="calcTotalVenta()"></div>
       <div class="field"><label>Precio unitario ($)</label><input id="v-precio" type="number" min="0" oninput="calcTotalVenta()"></div>
-      <div class="field"><label>Total ($)</label><input id="v-total" type="number" readonly style="background:#f0f4ff;font-weight:600;color:var(--blue-dark)"></div>
+      <div class="field"><label>Total ($)</label><input id="v-total" type="number" readonly style="font-weight:600"></div>
       <div class="field"><label>Medio de pago</label><select id="v-pago"></select></div>
       <div class="field"><label>Fecha</label><input id="v-fecha" type="date"></div>
       <div class="field field-full"><label>Notas</label><textarea id="v-notas" placeholder="Observaciones de la venta..."></textarea></div>
@@ -420,248 +438,366 @@
 <div class="modal-overlay" id="modal-abono">
   <div class="modal">
     <div class="modal-header">
-      <h3>💰 Registrar abono — <span id="abono-nombre"></span></h3>
+      <h3>💰 Abono — <span id="abono-nombre"></span></h3>
       <button class="modal-close" onclick="closeModal('modal-abono')">✕</button>
     </div>
-    <div class="balance-box" id="abono-balance"></div>
-    <div class="divider"></div>
+    <div style="padding:0 24px">
+      <div class="balance-box" id="abono-balance"></div>
+      <div class="divider"></div>
+    </div>
     <div class="form-grid">
       <div class="field"><label>Monto del abono ($) *</label><input id="abono-monto" type="number" min="0" placeholder="0"></div>
       <div class="field"><label>Medio de pago</label><select id="abono-pago"></select></div>
       <div class="field"><label>Fecha</label><input id="abono-fecha" type="date"></div>
       <div class="field"><label>Nota</label><input id="abono-nota" placeholder="Observación (opcional)"></div>
     </div>
-    <div class="btn-row" style="margin-top:12px">
-      <button class="btn btn-success" onclick="registrarAbonoUI()">✓ Registrar abono</button>
-    </div>
-    <div class="abono-section">
-      <h4>📋 Historial de abonos</h4>
-      <div id="abono-historial"></div>
+    <div style="padding:0 24px 16px">
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="registrarAbonoUI()">✓ Registrar abono</button>
+      </div>
+      <div class="abono-section">
+        <h4>📋 Historial de abonos</h4>
+        <div id="abono-historial"></div>
+      </div>
     </div>
   </div>
 </div>
 
+<!-- LOADER -->
+<div id="admin-loader" style="display:none;position:fixed;inset:0;background:rgba(26,20,16,0.45);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(2px)">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px 32px;text-align:center;box-shadow:var(--shadow-lg)">
+    <div style="font-size:28px;margin-bottom:8px;animation:spin 1s linear infinite">⚙️</div>
+    <div style="font-family:var(--font-display);letter-spacing:2px;color:var(--gold-dark);font-size:16px">PROCESANDO</div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<style>
+@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+</style>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./js/admin/core.js"></script>
+<script>
+// ─── SHARED HELPERS (necesarios antes de los otros scripts) ──────────
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+const MEDIOS_PAGO = ['Efectivo','Nequi','Daviplata','Bancolombia','Tarjeta débito','Tarjeta crédito','Transferencia'];
+function mediosPagoOptions(selected = 'Efectivo') {
+  return MEDIOS_PAGO.map(m => `<option${m === selected ? ' selected' : ''}>${m}</option>`).join('');
+}
+
+const PAGO_ICONS = { Nequi:'💜', Daviplata:'🔴', Bancolombia:'🟡', Efectivo:'💵', Transferencia:'🏦', 'Tarjeta débito':'💳', 'Tarjeta crédito':'💳' };
+function pagoIcon(pago) {
+  const icon = PAGO_ICONS[pago] || '💵';
+  return `<span class="pago-icon">${icon} ${pago || 'Efectivo'}</span>`;
+}
+
+function badge(text, cls = 'b-gray') {
+  return `<span class="badge ${cls}">${text}</span>`;
+}
+
+function progressBar(item) {
+  const total = Number(item.total || item.costo || 0);
+  if (!total) return '';
+  const abonado = Number(item.anticipo || 0) + getAbonados(item);
+  const pct = Math.min(100, Math.round((abonado / total) * 100));
+  return `<div class="progress-bar-wrap" style="margin-top:4px"><div class="progress-bar" style="width:${pct}%"></div></div>`;
+}
+
+function getSaldo(item) {
+  const total = Number(item.total || item.costo || 0);
+  const anticipo = Number(item.anticipo || 0);
+  const abonado = getAbonados(item);
+  return Math.max(0, total - anticipo - abonado);
+}
+
+function getAbonados(item) {
+  return (item.abonos || []).reduce((s, a) => s + Number(a.monto || 0), 0);
+}
+
+function showLoader(on) {
+  const el = document.getElementById('admin-loader');
+  el.style.display = on ? 'flex' : 'none';
+}
+
+// ─── NAV RESPONSIVE ──────────────────────────────────────────────────
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  const open = sb.classList.toggle('open');
+  ov.style.display = open ? 'block' : 'none';
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').style.display = 'none';
+}
+
+// Cerrar sidebar al seleccionar sección en mobile
+const _showSection = showSection;
+window.showSection = function(id) {
+  _showSection(id);
+  if (window.innerWidth <= 768) closeSidebar();
+};
+
+// ─── SUPABASE CRUD ───────────────────────────────────────────────────
+async function saveProducto(obj) {
+  const { error } = await sb.from('productos').upsert({
+    id: obj.id, nombre: obj.nombre, ref: obj.ref, marca: obj.marca,
+    categoria: obj.categoria, talla: obj.talla, color: obj.color,
+    costo: obj.costo, precio: obj.precio, stock: obj.stock,
+    stockmin: obj.stockmin, notas: obj.notas, activo: true,
+  }, { onConflict: 'id' });
+  if (error) { toast('Error al guardar producto: ' + error.message, 'error'); throw error; }
+  toast('Producto guardado ✓', 'success');
+}
+
+async function saveVenta(obj) {
+  const { error } = await sb.from('ventas').upsert({
+    id: obj.id, cliente: obj.cliente, producto_id: obj.productoId,
+    producto_nombre: obj.productoNombre, cantidad: obj.cantidad,
+    precio: obj.precio, total: obj.total, pago: obj.pago,
+    fecha: obj.fecha, notas: obj.notas,
+  }, { onConflict: 'id' });
+  if (error) { toast('Error al registrar venta: ' + error.message, 'error'); throw error; }
+  toast('Venta registrada ✓', 'success');
+}
+
+async function updateStock(prodId, newStock) {
+  const { error } = await sb.from('productos').update({ stock: newStock }).eq('id', prodId);
+  if (error) console.warn('updateStock error:', error.message);
+}
+
+async function savePedido(obj) {
+  const { abonos, ...data } = obj;
+  const { error } = await sb.from('pedidos').upsert({
+    id: data.id, cliente: data.cliente, tel: data.tel, desc: data.desc,
+    anticipo: data.anticipo, pago_anticipo: data.pagoAnticipo,
+    total: data.total, entrega: data.entrega || null,
+    estado: data.estado, notas: data.notas, fecha: data.fecha,
+  }, { onConflict: 'id' });
+  if (error) { toast('Error al guardar pedido: ' + error.message, 'error'); throw error; }
+  toast('Pedido guardado ✓', 'success');
+}
+
+async function saveArreglo(obj) {
+  const { abonos, ...data } = obj;
+  const { error } = await sb.from('arreglos').upsert({
+    id: data.id, cliente: data.cliente, tel: data.tel, tipo: data.tipo,
+    desc: data.desc, costo: data.costo, anticipo: data.anticipo,
+    pago_anticipo: data.pagoAnticipo, entrega: data.entrega || null,
+    estado: data.estado, fecha: data.fecha, total: data.total,
+  }, { onConflict: 'id' });
+  if (error) { toast('Error al guardar arreglo: ' + error.message, 'error'); throw error; }
+  toast('Arreglo guardado ✓', 'success');
+}
+
+async function saveAbono(tabla, itemId, abono) {
+  const col = tabla === 'pedidos' ? 'pedido_id' : 'arreglo_id';
+  const { error } = await sb.from('abonos').insert({
+    id: abono.id, [col]: itemId, monto: abono.monto,
+    pago: abono.pago, nota: abono.nota, fecha: abono.fecha,
+  });
+  if (error) { toast('Error al registrar abono: ' + error.message, 'error'); throw error; }
+  toast('Abono registrado ✓', 'success');
+}
+
+async function deleteAbonoDB(abonoId) {
+  const { error } = await sb.from('abonos').delete().eq('id', abonoId);
+  if (error) { toast('Error al eliminar abono: ' + error.message, 'error'); throw error; }
+}
+
+async function deleteItemDB(tabla, id) {
+  const { error } = await sb.from(tabla).delete().eq('id', id);
+  if (error) { toast('Error al eliminar: ' + error.message, 'error'); throw error; }
+  toast('Eliminado ✓');
+}
+
+// ─── BADGES DE ESTADO ─────────────────────────────────────────────────
+const ESTADO_PEDIDO_CLASS = {
+  'Pendiente':           'b-yellow',
+  'En proceso':          'b-blue',
+  'Listo para entregar': 'b-green',
+  'Entregado':           'b-gray',
+  'Cancelado':           'b-red',
+};
+const ESTADO_ARREGLO_CLASS = {
+  'Recibido':  'b-yellow',
+  'En proceso':'b-blue',
+  'Listo':     'b-green',
+  'Entregado': 'b-gray',
+};
+
+function updateNavBadges() {
+  const ped = DB.pedidos.filter(p => p.estado !== 'Entregado' && p.estado !== 'Cancelado').length;
+  const arr = DB.arreglos.filter(a => a.estado !== 'Entregado').length;
+  const bp = document.getElementById('badge-pedidos');
+  const ba = document.getElementById('badge-arreglos');
+  if (bp) { bp.textContent = ped; bp.style.display = ped ? '' : 'none'; }
+  if (ba) { ba.textContent = arr; ba.style.display = arr ? '' : 'none'; }
+}
+</script>
 <script src="./js/admin/pedidos_arreglos.js"></script>
 <script src="./js/admin/productos.js"></script>
 <script src="./js/admin/ventas.js"></script>
 <script>
-  // ─── MENSAJES ────────────────────────────────────────────────────────
-  let MENSAJES = [];
-  let CURRENT_MSG = null;
+// ─── MENSAJES ────────────────────────────────────────────────────────
+let MENSAJES = [];
+let CURRENT_MSG = null;
 
-  async function loadMensajes() {
-    const { data } = await sb
-      .from('mensajes')
-      .select('*, profiles(nombre, apellido, email_visitante)')
-      .order('created_at', { ascending: false });
-    MENSAJES = data || [];
+async function loadMensajes() {
+  const { data } = await sb.from('mensajes')
+    .select('*, profiles(nombre, apellido, email_visitante)')
+    .order('created_at', { ascending: false });
+  MENSAJES = data || [];
+  const noLeidos = MENSAJES.filter(m => !m.leido_admin).length;
+  const bm = document.getElementById('badge-mensajes');
+  if (bm) { bm.textContent = noLeidos; bm.style.display = noLeidos ? '' : 'none'; }
+}
 
-    // Badge de no leídos
-    const noLeidos = MENSAJES.filter(m => !m.leido_admin).length;
-    const badge = document.getElementById('badge-mensajes');
-    if (badge) {
-      badge.textContent = noLeidos;
-      badge.style.display = noLeidos ? '' : 'none';
-    }
-  }
+const MSG_TIPO_MAP = {
+  soporte:{ label:'Soporte',cls:'b-blue' }, sugerencia:{ label:'Sugerencia',cls:'b-purple' },
+  reclamo:{ label:'Reclamo',cls:'b-red' }, calificacion:{ label:'Calificación',cls:'b-amber' }, otro:{ label:'Otro',cls:'b-gray' },
+};
+const MSG_ESTADO_MAP = {
+  abierto:{ label:'Abierto',cls:'b-amber' }, respondido:{ label:'Respondido',cls:'b-blue' }, cerrado:{ label:'Cerrado',cls:'b-gray' },
+};
+function msgBadge(tipo) { const t=MSG_TIPO_MAP[tipo]||{label:tipo,cls:'b-gray'}; return `<span class="badge ${t.cls}">${t.label}</span>`; }
+function msgEstadoBadge(e) { const s=MSG_ESTADO_MAP[e]||{label:e,cls:'b-gray'}; return `<span class="badge ${s.cls}">${s.label}</span>`; }
 
-  const MSG_TIPO_MAP = {
-    soporte:      { label: 'Soporte',      cls: 'b-blue'   },
-    sugerencia:   { label: 'Sugerencia',   cls: 'b-purple' },
-    reclamo:      { label: 'Reclamo',      cls: 'b-red'    },
-    calificacion: { label: 'Calificación', cls: 'b-amber'  },
-    otro:         { label: 'Otro',         cls: 'b-gray'   },
-  };
-  const MSG_ESTADO_MAP = {
-    abierto:     { label: 'Abierto',     cls: 'b-amber' },
-    respondido:  { label: 'Respondido',  cls: 'b-blue'  },
-    cerrado:     { label: 'Cerrado',     cls: 'b-gray'  },
-  };
-
-  function msgBadge(tipo) {
-    const t = MSG_TIPO_MAP[tipo] || { label: tipo, cls: 'b-gray' };
-    return `<span class="badge ${t.cls}">${t.label}</span>`;
-  }
-  function msgEstadoBadge(estado) {
-    const e = MSG_ESTADO_MAP[estado] || { label: estado, cls: 'b-gray' };
-    return `<span class="badge ${e.cls}">${e.label}</span>`;
-  }
-
-  function renderMensajes() {
-    const estadoF = document.getElementById('msg-estado-filter')?.value || '';
-    const tipoF   = document.getElementById('msg-tipo-filter')?.value   || '';
-    let list = MENSAJES;
-    if (estadoF) list = list.filter(m => m.estado === estadoF);
-    if (tipoF)   list = list.filter(m => m.tipo   === tipoF);
-
-    const el    = document.getElementById('msg-list');
-    const empty = document.getElementById('msg-empty');
-    if (!el) return;
-
-    if (!list.length) {
-      el.innerHTML = '';
-      empty.style.display = '';
-      return;
-    }
-    empty.style.display = 'none';
-
-    el.innerHTML = list.map(m => {
-      const nombre = m.profiles
-        ? `${m.profiles.nombre || ''} ${m.profiles.apellido || ''}`.trim()
-        : (m.nombre_visitante || 'Visitante');
-      const email = m.email_visitante || '';
-      const unread = !m.leido_admin;
-      const fecha = new Date(m.created_at).toLocaleDateString('es-CO', { day:'2-digit', month:'short', year:'numeric' });
-
-      return `
-      <div class="msg-row ${unread ? 'msg-unread' : ''}" onclick="openMsgDetail('${m.id}')">
-        <div class="msg-row-avatar">${(nombre[0] || '?').toUpperCase()}</div>
-        <div class="msg-row-body">
-          <div class="msg-row-top">
-            <span class="msg-row-name">${nombre}</span>
-            <span class="msg-row-badges">${msgBadge(m.tipo)} ${msgEstadoBadge(m.estado)}</span>
-            <span class="msg-row-date">${fecha}</span>
-          </div>
-          <div class="msg-row-subject">${m.asunto}</div>
-          <div class="msg-row-preview">${(m.cuerpo || '').slice(0, 100)}${m.cuerpo?.length > 100 ? '…' : ''}</div>
+function renderMensajes() {
+  const ef = document.getElementById('msg-estado-filter')?.value||'';
+  const tf = document.getElementById('msg-tipo-filter')?.value||'';
+  let list = MENSAJES.filter(m => (!ef||m.estado===ef) && (!tf||m.tipo===tf));
+  const el = document.getElementById('msg-list');
+  const empty = document.getElementById('msg-empty');
+  if (!el) return;
+  if (!list.length) { el.innerHTML=''; empty.style.display=''; return; }
+  empty.style.display = 'none';
+  el.innerHTML = list.map(m => {
+    const nombre = m.profiles ? `${m.profiles.nombre||''} ${m.profiles.apellido||''}`.trim() : (m.nombre_visitante||'Visitante');
+    const unread = !m.leido_admin;
+    const fecha = new Date(m.created_at).toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});
+    return `<div class="msg-row ${unread?'msg-unread':''}" onclick="openMsgDetail('${m.id}')">
+      <div class="msg-row-avatar">${(nombre[0]||'?').toUpperCase()}</div>
+      <div class="msg-row-body">
+        <div class="msg-row-top">
+          <span class="msg-row-name">${nombre}</span>
+          <span class="msg-row-badges">${msgBadge(m.tipo)} ${msgEstadoBadge(m.estado)}</span>
+          <span class="msg-row-date">${fecha}</span>
         </div>
-        ${unread ? '<div class="msg-unread-dot"></div>' : ''}
-      </div>`;
-    }).join('');
+        <div class="msg-row-subject">${m.asunto}</div>
+        <div class="msg-row-preview">${(m.cuerpo||'').slice(0,100)}${m.cuerpo?.length>100?'…':''}</div>
+      </div>
+      ${unread ? '<div class="msg-unread-dot"></div>' : ''}
+    </div>`;
+  }).join('');
+}
+
+async function openMsgDetail(id) {
+  CURRENT_MSG = MENSAJES.find(m => m.id===id); if (!CURRENT_MSG) return;
+  if (!CURRENT_MSG.leido_admin) {
+    await sb.from('mensajes').update({leido_admin:true}).eq('id',id);
+    CURRENT_MSG.leido_admin = true;
+  }
+  document.getElementById('msg-list-view').style.display = 'none';
+  document.getElementById('msg-detail-view').style.display = '';
+  const nombre = CURRENT_MSG.profiles ? `${CURRENT_MSG.profiles.nombre||''} ${CURRENT_MSG.profiles.apellido||''}`.trim() : (CURRENT_MSG.nombre_visitante||'Visitante');
+  const fecha = new Date(CURRENT_MSG.created_at).toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('msg-detail-content').innerHTML = `
+    <div class="panel"><div class="panel-header" style="flex-wrap:wrap;gap:8px">
+      <div><div class="panel-title" style="margin-bottom:4px">${CURRENT_MSG.asunto}</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${msgBadge(CURRENT_MSG.tipo)} ${msgEstadoBadge(CURRENT_MSG.estado)}</div>
+      </div>
+      <div style="text-align:right;font-size:12px;color:var(--text-muted);margin-left:auto">
+        <div style="font-weight:600;color:var(--text)">${nombre}</div><div>${fecha}</div>
+      </div>
+    </div>
+    <div class="panel-body"><div class="msg-original-body">${CURRENT_MSG.cuerpo}</div></div></div>`;
+  await loadMsgThread(id);
+  document.getElementById('msg-change-estado').value = '';
+  await loadMensajes(); renderMensajes();
+}
+
+async function loadMsgThread(msgId) {
+  const { data: replies } = await sb.from('mensaje_respuestas').select('*').eq('mensaje_id',msgId).order('created_at',{ascending:true});
+  const thread = document.getElementById('msg-thread'); if (!thread) return;
+  if (!replies?.length) { thread.innerHTML='<div style="color:var(--text-muted);font-size:13px;font-style:italic;padding:8px 0">Sin respuestas aún.</div>'; return; }
+  thread.innerHTML = replies.map(r => {
+    const fecha = new Date(r.created_at).toLocaleDateString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+    return `<div class="msg-bubble ${r.es_admin?'msg-bubble-admin':'msg-bubble-client'}">
+      <div class="msg-bubble-meta"><span>${r.es_admin?'🛡️ Admin':'👤 Cliente'}</span><span>${fecha}</span></div>
+      <div class="msg-bubble-text">${r.cuerpo}</div></div>`;
+  }).join('');
+}
+
+async function sendAdminReply() {
+  if (!CURRENT_MSG) return;
+  const texto = document.getElementById('msg-reply-text').value.trim();
+  if (!texto) { alert('Escribe una respuesta.'); return; }
+  const btn = document.querySelector('[onclick="sendAdminReply()"]');
+  btn.disabled=true; btn.textContent='Enviando...';
+  const { error } = await sb.from('mensaje_respuestas').insert({mensaje_id:CURRENT_MSG.id,es_admin:true,cuerpo:texto,leido:false});
+  if (!error) {
+    await sb.from('mensajes').update({estado:'respondido',leido_user:false}).eq('id',CURRENT_MSG.id);
+    document.getElementById('msg-reply-text').value='';
+    await loadMsgThread(CURRENT_MSG.id); await loadMensajes();
+    toast('Respuesta enviada ✓','success');
+  } else { alert('Error: '+error.message); }
+  btn.disabled=false; btn.textContent='✉️ Enviar respuesta';
+}
+
+async function changeMsgEstado() {
+  if (!CURRENT_MSG) return;
+  const nuevoEstado = document.getElementById('msg-change-estado').value;
+  if (!nuevoEstado) { alert('Selecciona un estado.'); return; }
+  await sb.from('mensajes').update({estado:nuevoEstado}).eq('id',CURRENT_MSG.id);
+  CURRENT_MSG.estado = nuevoEstado;
+  toast('Estado actualizado ✓','success');
+  await loadMensajes(); openMsgDetail(CURRENT_MSG.id);
+}
+
+function closeMsgDetail() {
+  document.getElementById('msg-detail-view').style.display='none';
+  document.getElementById('msg-list-view').style.display='';
+  CURRENT_MSG = null;
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────
+async function initApp() {
+  setTopbarDate();
+  document.getElementById('abono-fecha').value = today();
+
+  // Actualizar perfil en UI
+  if (window.ADMIN_PROFILE) {
+    const p = window.ADMIN_PROFILE;
+    const initials = ((p.nombre||'A')[0] + (p.apellido||'')[0]).toUpperCase();
+    document.getElementById('sb-avatar').textContent = initials;
+    document.getElementById('tb-avatar').textContent = initials;
+    document.getElementById('sb-name').textContent = `${p.nombre||''} ${p.apellido||''}`.trim() || 'Admin';
+    document.getElementById('tb-admin-name').textContent = `${p.nombre||''} ${p.apellido||''}`.trim();
   }
 
-  async function openMsgDetail(id) {
-    CURRENT_MSG = MENSAJES.find(m => m.id === id);
-    if (!CURRENT_MSG) return;
+  await loadDB();
+  await loadMensajes();
+  renderDashboard();
+  renderMensajes();
+  updateNavBadges();
+}
 
-    // Marcar como leído
-    if (!CURRENT_MSG.leido_admin) {
-      await sb.from('mensajes').update({ leido_admin: true }).eq('id', id);
-      CURRENT_MSG.leido_admin = true;
+// Esperar a que la protección de auth termine antes de inicializar
+window.addEventListener('load', () => {
+  // core.js hace el check de auth y luego el body se hace visible
+  // Cuando el body es visible, ADMIN_PROFILE ya está disponible
+  const check = setInterval(() => {
+    if (document.body.style.visibility !== 'hidden') {
+      clearInterval(check);
+      initApp();
     }
-
-    document.getElementById('msg-list-view').style.display   = 'none';
-    document.getElementById('msg-detail-view').style.display = '';
-
-    const nombre = CURRENT_MSG.profiles
-      ? `${CURRENT_MSG.profiles.nombre || ''} ${CURRENT_MSG.profiles.apellido || ''}`.trim()
-      : (CURRENT_MSG.nombre_visitante || 'Visitante');
-    const email = CURRENT_MSG.email_visitante || '';
-    const fecha = new Date(CURRENT_MSG.created_at).toLocaleDateString('es-CO', { day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
-
-    document.getElementById('msg-detail-content').innerHTML = `
-      <div class="panel">
-        <div class="panel-header" style="flex-wrap:wrap;gap:8px">
-          <div>
-            <div class="panel-title" style="margin-bottom:4px">${CURRENT_MSG.asunto}</div>
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-              ${msgBadge(CURRENT_MSG.tipo)} ${msgEstadoBadge(CURRENT_MSG.estado)}
-              ${CURRENT_MSG.calificacion ? `<span style="color:#f59e0b;font-size:14px">${'★'.repeat(CURRENT_MSG.calificacion)}${'☆'.repeat(5 - CURRENT_MSG.calificacion)}</span>` : ''}
-            </div>
-          </div>
-          <div style="text-align:right;font-size:12px;color:var(--text-muted)">
-            <div style="font-weight:600;color:var(--text)">${nombre}</div>
-            ${email ? `<div>${email}</div>` : ''}
-            <div>${fecha}</div>
-          </div>
-        </div>
-        <div class="panel-body">
-          <div class="msg-original-body">${CURRENT_MSG.cuerpo}</div>
-        </div>
-      </div>`;
-
-    // Cargar hilo de respuestas
-    await loadMsgThread(id);
-
-    // Set estado selector
-    const sel = document.getElementById('msg-change-estado');
-    if (sel) sel.value = '';
-
-    // Actualizar badge
-    await loadMensajes();
-    renderMensajes();
-  }
-
-  async function loadMsgThread(msgId) {
-    const { data: replies } = await sb
-      .from('mensaje_respuestas')
-      .select('*')
-      .eq('mensaje_id', msgId)
-      .order('created_at', { ascending: true });
-
-    const thread = document.getElementById('msg-thread');
-    if (!thread) return;
-    if (!replies?.length) {
-      thread.innerHTML = '<div style="color:var(--text-muted);font-size:13px;font-style:italic;padding:8px 0">Sin respuestas aún.</div>';
-      return;
-    }
-    thread.innerHTML = replies.map(r => {
-      const fecha = new Date(r.created_at).toLocaleDateString('es-CO', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
-      return `
-      <div class="msg-bubble ${r.es_admin ? 'msg-bubble-admin' : 'msg-bubble-client'}">
-        <div class="msg-bubble-meta">
-          <span>${r.es_admin ? '🛡️ Admin' : '👤 Cliente'}</span>
-          <span>${fecha}</span>
-        </div>
-        <div class="msg-bubble-text">${r.cuerpo}</div>
-      </div>`;
-    }).join('');
-  }
-
-  async function sendAdminReply() {
-    if (!CURRENT_MSG) return;
-    const texto = document.getElementById('msg-reply-text').value.trim();
-    if (!texto) { alert('Escribe una respuesta.'); return; }
-
-    const btn = document.querySelector('[onclick="sendAdminReply()"]');
-    btn.disabled = true; btn.textContent = 'Enviando...';
-
-    const { error } = await sb.from('mensaje_respuestas').insert({
-      mensaje_id: CURRENT_MSG.id,
-      es_admin: true,
-      cuerpo: texto,
-      leido: false,
-    });
-
-    if (!error) {
-      // Cambiar estado a respondido automáticamente
-      await sb.from('mensajes').update({ estado: 'respondido', leido_user: false }).eq('id', CURRENT_MSG.id);
-      document.getElementById('msg-reply-text').value = '';
-      await loadMsgThread(CURRENT_MSG.id);
-      await loadMensajes();
-    } else {
-      alert('Error enviando respuesta: ' + error.message);
-    }
-    btn.disabled = false; btn.textContent = '✉️ Enviar respuesta';
-  }
-
-  async function changeMsgEstado() {
-    if (!CURRENT_MSG) return;
-    const nuevoEstado = document.getElementById('msg-change-estado').value;
-    if (!nuevoEstado) { alert('Selecciona un estado.'); return; }
-    await sb.from('mensajes').update({ estado: nuevoEstado }).eq('id', CURRENT_MSG.id);
-    CURRENT_MSG.estado = nuevoEstado;
-    await loadMensajes();
-    openMsgDetail(CURRENT_MSG.id); // refrescar detalle
-  }
-
-  function closeMsgDetail() {
-    document.getElementById('msg-detail-view').style.display = 'none';
-    document.getElementById('msg-list-view').style.display   = '';
-    CURRENT_MSG = null;
-  }
-  // ─── INIT ────────────────────────────────────────────────────────────
-  async function initApp() {
-    setTopbarDate();
-    document.getElementById('abono-fecha').value = today();
-    await loadDB();
-    await loadMensajes();
-    renderDashboard();
-    renderMensajes();
-  }
-  initApp();
+  }, 50);
+});
 </script>
 </body>
 </html>
