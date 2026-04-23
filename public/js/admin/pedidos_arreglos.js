@@ -3,7 +3,7 @@ function renderPedidos() {
   const q = (document.getElementById('ped-search').value || '').toLowerCase();
   const est = document.getElementById('ped-estado-filter').value;
   let list = DB.pedidos.filter(p =>
-    (!q || `${p.cliente} ${p.desc} ${p.tel}`.toLowerCase().includes(q)) &&
+    (!q || `${p.cliente} ${p.descripcion} ${p.tel}`.toLowerCase().includes(q)) &&
     (!est || p.estado === est)
   ).slice().reverse();
 
@@ -23,7 +23,7 @@ function renderPedidos() {
         <div style="font-weight:500">${p.cliente || '—'}</div>
         ${p.tel ? `<div style="font-size:11px;color:var(--text-muted)">📱 ${p.tel}</div>` : ''}
       </td>
-      <td style="max-width:180px;font-size:12px;color:var(--text-muted)">${p.desc || '—'}</td>
+      <td style="max-width:180px;font-size:12px;color:var(--text-muted)">${p.descripcion || '—'}</td>
       <td>
         <div style="font-weight:600;color:var(--blue-dark)">${fmtMoneyFull(p.total)}</div>
         <div style="font-size:11px;color:var(--text-muted)">Pagado: ${fmtMoneyFull(totalPagado)}</div>
@@ -63,7 +63,7 @@ async function savePedidoUI() {
   const obj = {
     id, cliente,
     tel: document.getElementById('pe-tel').value.trim(),
-    desc: document.getElementById('pe-desc').value.trim(),
+    descripcion: document.getElementById('pe-desc').value.trim(),
     anticipo: Number(document.getElementById('pe-anticipo').value || 0),
     pagoAnticipo: document.getElementById('pe-pago-anticipo').value,
     total: Number(document.getElementById('pe-total').value || 0),
@@ -87,7 +87,7 @@ function editPedido(id) {
   document.getElementById('pe-id').value = p.id;
   document.getElementById('pe-cliente').value = p.cliente || '';
   document.getElementById('pe-tel').value = p.tel || '';
-  document.getElementById('pe-desc').value = p.desc || '';
+  document.getElementById('pe-desc').value = p.descripcion || '';
   document.getElementById('pe-anticipo').value = p.anticipo || '0';
   document.getElementById('pe-total').value = p.total || '0';
   document.getElementById('pe-entrega').value = p.entrega || '';
@@ -102,7 +102,7 @@ function renderArreglos() {
   const q = (document.getElementById('arr-search').value || '').toLowerCase();
   const est = document.getElementById('arr-estado-filter').value;
   let list = DB.arreglos.filter(a =>
-    (!q || `${a.cliente} ${a.tipo} ${a.desc} ${a.tel}`.toLowerCase().includes(q)) &&
+    (!q || `${a.cliente} ${a.tipo} ${a.descripcion} ${a.tel}`.toLowerCase().includes(q)) &&
     (!est || a.estado === est)
   ).slice().reverse();
 
@@ -125,7 +125,7 @@ function renderArreglos() {
         ${a.tel ? `<div style="font-size:11px;color:var(--text-muted)">📱 ${a.tel}</div>` : ''}
       </td>
       <td><span class="chip chip-gold">${a.tipo || '—'}</span></td>
-      <td style="max-width:160px;font-size:12px;color:var(--text-muted)">${a.desc || '—'}</td>
+      <td style="max-width:160px;font-size:12px;color:var(--text-muted)">${a.descripcion || '—'}</td>
       <td>
         <div style="font-weight:600;color:var(--blue-dark)">${fmtMoneyFull(a.costo)}</div>
         <div style="font-size:11px;color:var(--text-muted)">Pagado: ${fmtMoneyFull(totalPag)}</div>
@@ -169,7 +169,7 @@ async function saveArregloUI() {
     id, cliente,
     tel: document.getElementById('a-tel').value.trim(),
     tipo: document.getElementById('a-tipo').value,
-    desc: document.getElementById('a-desc').value.trim(),
+    descripcion: document.getElementById('a-desc').value.trim(),
     costo,
     anticipo: Number(document.getElementById('a-anticipo').value || 0),
     pagoAnticipo: document.getElementById('a-pago-anticipo').value,
@@ -194,7 +194,7 @@ function editArreglo(id) {
   document.getElementById('a-cliente').value = a.cliente || '';
   document.getElementById('a-tel').value = a.tel || '';
   document.getElementById('a-tipo').value = a.tipo || 'Media suela';
-  document.getElementById('a-desc').value = a.desc || '';
+  document.getElementById('a-desc').value = a.descripcion || '';
   document.getElementById('a-costo').value = a.costo || a.total || '0';
   document.getElementById('a-anticipo').value = a.anticipo || '0';
   document.getElementById('a-entrega').value = a.entrega || '';

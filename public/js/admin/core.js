@@ -179,10 +179,10 @@ function populatePagoSelects() {
 async function loadDB() {
   const [ordenes, productos, categorias, pedidos, arreglos, ventas, clientes] = await Promise.all([
     sb.from('ordenes').select('*, profiles(nombre,apellido), orden_items(*)').order('created_at', { ascending: false }),
-    sb.from('productos').select('*').order('fecha_creado', { ascending: false }),
+    sb.from('productos').select('*').order('id', { ascending: false }),
     sb.from('categorias').select('*').order('orden'),
-    sb.from('pedidos').select('*, abonos(*)').order('fecha', { ascending: false }),
-    sb.from('arreglos').select('*, abonos(*)').order('fecha', { ascending: false }),
+    sb.from('pedidos').select('*, abonos!abonos_pedido_id_fkey(*)').order('fecha', { ascending: false }),
+    sb.from('arreglos').select('*, abonos!abonos_arreglo_id_fkey(*)').order('fecha', { ascending: false }),
     sb.from('ventas').select('*').order('fecha', { ascending: false }),
     sb.from('profiles').select('*').eq('rol', 'cliente').order('created_at', { ascending: false }),
   ]);
@@ -257,7 +257,7 @@ async function updateStock(prodId, newStock) {
 async function savePedido(obj) {
   const { abonos, ...data } = obj;
   const { error } = await sb.from('pedidos').upsert({
-    id: data.id, cliente: data.cliente, tel: data.tel, desc: data.desc,
+    id: data.id, cliente: data.cliente, tel: data.tel, descripcion: data.descripcion,
     anticipo: Number(data.anticipo)||0, pago_anticipo: data.pagoAnticipo,
     total: Number(data.total)||0, entrega: data.entrega || null,
     estado: data.estado, notas: data.notas, fecha: data.fecha,
@@ -270,7 +270,7 @@ async function saveArreglo(obj) {
   const { abonos, ...data } = obj;
   const { error } = await sb.from('arreglos').upsert({
     id: data.id, cliente: data.cliente, tel: data.tel, tipo: data.tipo,
-    desc: data.desc, costo: Number(data.costo)||0,
+    descripcion: data.descripcion, costo: Number(data.costo)||0,
     anticipo: Number(data.anticipo)||0, pago_anticipo: data.pagoAnticipo,
     entrega: data.entrega || null, estado: data.estado,
     fecha: data.fecha, total: Number(data.total)||0,
