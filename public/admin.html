@@ -553,166 +553,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./js/admin/core.js"></script>
-<script>
-// ─── SHARED HELPERS (necesarios antes de los otros scripts) ──────────
+<!-- Funciones SHARED declaradas en core.js -->
 
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
-
-const MEDIOS_PAGO = ['Efectivo','Nequi','Daviplata','Bancolombia','Tarjeta débito','Tarjeta crédito','Transferencia'];
-function mediosPagoOptions(selected = 'Efectivo') {
-  return MEDIOS_PAGO.map(m => `<option${m === selected ? ' selected' : ''}>${m}</option>`).join('');
-}
-
-const PAGO_ICONS = { Nequi:'💜', Daviplata:'🔴', Bancolombia:'🟡', Efectivo:'💵', Transferencia:'🏦', 'Tarjeta débito':'💳', 'Tarjeta crédito':'💳' };
-function pagoIcon(pago) {
-  const icon = PAGO_ICONS[pago] || '💵';
-  return `<span class="pago-icon">${icon} ${pago || 'Efectivo'}</span>`;
-}
-
-function badge(text, cls = 'b-gray') {
-  return `<span class="badge ${cls}">${text}</span>`;
-}
-
-function progressBar(item) {
-  const total = Number(item.total || item.costo || 0);
-  if (!total) return '';
-  const abonado = Number(item.anticipo || 0) + getAbonados(item);
-  const pct = Math.min(100, Math.round((abonado / total) * 100));
-  return `<div class="progress-bar-wrap" style="margin-top:4px"><div class="progress-bar" style="width:${pct}%"></div></div>`;
-}
-
-function getSaldo(item) {
-  const total = Number(item.total || item.costo || 0);
-  const anticipo = Number(item.anticipo || 0);
-  const abonado = getAbonados(item);
-  return Math.max(0, total - anticipo - abonado);
-}
-
-function getAbonados(item) {
-  return (item.abonos || []).reduce((s, a) => s + Number(a.monto || 0), 0);
-}
-
-function showLoader(on) {
-  const el = document.getElementById('admin-loader');
-  el.style.display = on ? 'flex' : 'none';
-}
-
-// ─── NAV RESPONSIVE ──────────────────────────────────────────────────
-function toggleSidebar() {
-  const sb = document.getElementById('sidebar');
-  const ov = document.getElementById('sidebar-overlay');
-  const open = sb.classList.toggle('open');
-  ov.style.display = open ? 'block' : 'none';
-}
-function closeSidebar() {
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebar-overlay').style.display = 'none';
-}
-
-// Cerrar sidebar al seleccionar sección en mobile
-const _showSection = showSection;
-window.showSection = function(id) {
-  _showSection(id);
-  if (window.innerWidth <= 768) closeSidebar();
-};
-
-// ─── SUPABASE CRUD ───────────────────────────────────────────────────
-async function saveProducto(obj) {
-  const { error } = await sb.from('productos').upsert({
-    id: obj.id, nombre: obj.nombre, ref: obj.ref, marca: obj.marca,
-    categoria: obj.categoria, talla: obj.talla, color: obj.color,
-    costo: obj.costo, precio: obj.precio, stock: obj.stock,
-    stockmin: obj.stockmin, notas: obj.notas, activo: true,
-  }, { onConflict: 'id' });
-  if (error) { toast('Error al guardar producto: ' + error.message, 'error'); throw error; }
-  toast('Producto guardado ✓', 'success');
-}
-
-async function saveVenta(obj) {
-  const { error } = await sb.from('ventas').upsert({
-    id: obj.id, cliente: obj.cliente, producto_id: obj.productoId,
-    producto_nombre: obj.productoNombre, cantidad: obj.cantidad,
-    precio: obj.precio, total: obj.total, pago: obj.pago,
-    fecha: obj.fecha, notas: obj.notas,
-  }, { onConflict: 'id' });
-  if (error) { toast('Error al registrar venta: ' + error.message, 'error'); throw error; }
-  toast('Venta registrada ✓', 'success');
-}
-
-async function updateStock(prodId, newStock) {
-  const { error } = await sb.from('productos').update({ stock: newStock }).eq('id', prodId);
-  if (error) console.warn('updateStock error:', error.message);
-}
-
-async function savePedido(obj) {
-  const { abonos, ...data } = obj;
-  const { error } = await sb.from('pedidos').upsert({
-    id: data.id, cliente: data.cliente, tel: data.tel, desc: data.desc,
-    anticipo: data.anticipo, pago_anticipo: data.pagoAnticipo,
-    total: data.total, entrega: data.entrega || null,
-    estado: data.estado, notas: data.notas, fecha: data.fecha,
-  }, { onConflict: 'id' });
-  if (error) { toast('Error al guardar pedido: ' + error.message, 'error'); throw error; }
-  toast('Pedido guardado ✓', 'success');
-}
-
-async function saveArreglo(obj) {
-  const { abonos, ...data } = obj;
-  const { error } = await sb.from('arreglos').upsert({
-    id: data.id, cliente: data.cliente, tel: data.tel, tipo: data.tipo,
-    desc: data.desc, costo: data.costo, anticipo: data.anticipo,
-    pago_anticipo: data.pagoAnticipo, entrega: data.entrega || null,
-    estado: data.estado, fecha: data.fecha, total: data.total,
-  }, { onConflict: 'id' });
-  if (error) { toast('Error al guardar arreglo: ' + error.message, 'error'); throw error; }
-  toast('Arreglo guardado ✓', 'success');
-}
-
-async function saveAbono(tabla, itemId, abono) {
-  const col = tabla === 'pedidos' ? 'pedido_id' : 'arreglo_id';
-  const { error } = await sb.from('abonos').insert({
-    id: abono.id, [col]: itemId, monto: abono.monto,
-    pago: abono.pago, nota: abono.nota, fecha: abono.fecha,
-  });
-  if (error) { toast('Error al registrar abono: ' + error.message, 'error'); throw error; }
-  toast('Abono registrado ✓', 'success');
-}
-
-async function deleteAbonoDB(abonoId) {
-  const { error } = await sb.from('abonos').delete().eq('id', abonoId);
-  if (error) { toast('Error al eliminar abono: ' + error.message, 'error'); throw error; }
-}
-
-async function deleteItemDB(tabla, id) {
-  const { error } = await sb.from(tabla).delete().eq('id', id);
-  if (error) { toast('Error al eliminar: ' + error.message, 'error'); throw error; }
-  toast('Eliminado ✓');
-}
-
-// ─── BADGES DE ESTADO ─────────────────────────────────────────────────
-const ESTADO_PEDIDO_CLASS = {
-  'Pendiente':           'b-yellow',
-  'En proceso':          'b-blue',
-  'Listo para entregar': 'b-green',
-  'Entregado':           'b-gray',
-  'Cancelado':           'b-red',
-};
-const ESTADO_ARREGLO_CLASS = {
-  'Recibido':  'b-yellow',
-  'En proceso':'b-blue',
-  'Listo':     'b-green',
-  'Entregado': 'b-gray',
-};
-
-function updateNavBadges() {
-  const ped = DB.pedidos.filter(p => p.estado !== 'Entregado' && p.estado !== 'Cancelado').length;
-  const arr = DB.arreglos.filter(a => a.estado !== 'Entregado').length;
-  const bp = document.getElementById('badge-pedidos');
-  const ba = document.getElementById('badge-arreglos');
-  if (bp) { bp.textContent = ped; bp.style.display = ped ? '' : 'none'; }
-  if (ba) { ba.textContent = arr; ba.style.display = arr ? '' : 'none'; }
-}
-</script>
 <script src="./js/admin/pedidos_arreglos.js"></script>
 <script src="./js/admin/productos.js"></script>
 <script src="./js/admin/ventas.js"></script>
@@ -866,6 +708,11 @@ function renderClientes() {
 async function initApp() {
   setTopbarDate();
   document.getElementById('abono-fecha').value = today();
+
+  // Cerrar sidebar al navegar en mobile
+  const _origShow = window.showSection;
+  window.showSection = function(id) { _origShow(id); if (window.innerWidth <= 768) closeSidebar(); };
+
 
   // Actualizar perfil en UI
   if (window.ADMIN_PROFILE) {
