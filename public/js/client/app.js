@@ -20,6 +20,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   // UI usuario
   updateUserUI();
 
+  // Favoritos locales
+  loadFavoritos();
+
   // Cargar datos base
   await Promise.all([
     loadCategorias(),
@@ -29,7 +32,11 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // Render inicial
   renderHomeDestacados();
+  renderHomeNovidades();
   renderHomeCategorias();
+
+  // Verificar retorno de Wompi (si viene de pago en línea)
+  verificarRetornoWompi();
 
   // Scroll topbar
   window.addEventListener('scroll', () => {
@@ -119,6 +126,20 @@ function renderHomeCategorias() {
       <div style="font-family:var(--font-display);font-size:16px;letter-spacing:2px;color:var(--text)">${c.nombre.toUpperCase()}</div>
     </button>
   `).join('');
+}
+
+async function renderHomeNovidades() {
+  const el = document.getElementById('home-novedades');
+  if (!el) return;
+  const { data: prods } = await sb
+    .from('productos')
+    .select('*, producto_variantes(*), producto_imagenes(*)')
+    .eq('activo', true)
+    .eq('es_nuevo', true)
+    .order('fecha_creado', { ascending: false })
+    .limit(8);
+  if (!prods?.length) { el.closest('section')?.style && (el.closest('section').style.display = 'none'); return; }
+  el.innerHTML = prods.map(p => productCardHTML(p)).join('');
 }
 
 async function renderHomeDestacados() {

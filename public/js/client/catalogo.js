@@ -97,6 +97,7 @@ function productCardHTML(p) {
       <div class="pc-img-inner">${productImgHTML(imagenes)}</div>
       <div class="pc-badges">
         ${p.destacado ? '<span class="pc-badge nuevo">Destacado</span>' : ''}
+        ${p.es_nuevo ? '<span class="pc-badge nuevo" style="background:var(--gold);color:#000">Nuevo</span>' : ''}
         ${descuento > 0 ? `<span class="pc-badge descuento">-${descuento}%</span>` : ''}
         ${agotado ? '<span class="pc-badge agotado">Agotado</span>' : ''}
       </div>
@@ -129,7 +130,7 @@ async function openProducto(prodId) {
 
   const { data: p } = await sb
     .from('productos')
-    .select('*, producto_variantes(*), producto_imagenes(*), resenas(calificacion)')
+    .select('*, producto_variantes(*), producto_imagenes(*)')
     .eq('id', prodId)
     .single();
 
@@ -142,10 +143,8 @@ async function openProducto(prodId) {
 
   const variantes = p.producto_variantes || [];
   const imagenes  = p.producto_imagenes  || [];
-  const resenas   = p.resenas || [];
-
-  // Calcular rating promedio
-  const avgRating = resenas.length ? (resenas.reduce((s, r) => s + r.calificacion, 0) / resenas.length).toFixed(1) : null;
+  // Rating no disponible (tabla resenas no implementada aún)
+  const avgRating = null;
 
   // Colores únicos
   const colores = [...new Map(variantes.filter(v => v.color).map(v => [v.color, v])).values()];
@@ -187,12 +186,7 @@ async function openProducto(prodId) {
       <h1 class="prod-name">${p.nombre}</h1>
       ${p.ref ? `<div class="prod-ref">REF: ${p.ref}</div>` : ''}
 
-      ${avgRating ? `
-        <div class="prod-stars">
-          <div class="stars">${starsHTML(Math.round(avgRating))}</div>
-          <span class="count">${avgRating} (${resenas.length} reseña${resenas.length !== 1 ? 's' : ''})</span>
-        </div>
-      ` : ''}
+
 
       <div class="prod-price-block">
         <span class="prod-price">${fmtMoneyFull(precioFinal)}</span>
@@ -366,29 +360,27 @@ function quickAddCart(e, prodId) {
   openProducto(prodId);
 }
 
-// Favoritos
+// Favoritos (guardado en localStorage — tabla favoritos no implementada en DB)
 async function toggleFav(e, prodId) {
   e.stopPropagation();
-  await toggleFavProd(prodId);
-  // Update card icon
+  toggleFavProd(prodId);
   const btn = e.currentTarget;
   const isFav = (APP.favoritos || []).includes(prodId);
   btn.textContent = isFav ? '❤️' : '🤍';
   btn.classList.toggle('active', isFav);
 }
 
-async function toggleFavProd(prodId) {
+function toggleFavProd(prodId) {
   if (!APP.favoritos) APP.favoritos = [];
   const isFav = APP.favoritos.includes(prodId);
   if (isFav) {
-    await sb.from('favoritos').delete().eq('user_id', APP.user.id).eq('producto_id', prodId);
     APP.favoritos = APP.favoritos.filter(id => id !== prodId);
     toast('Eliminado de favoritos');
   } else {
-    await sb.from('favoritos').upsert({ user_id: APP.user.id, producto_id: prodId });
     APP.favoritos.push(prodId);
     toast('❤️ Guardado en favoritos', 'success');
   }
+  try { localStorage.setItem('ricwer_favs', JSON.stringify(APP.favoritos)); } catch(_) {}
 }
 
 function shareProd(nombre) {
@@ -400,8 +392,8 @@ function shareProd(nombre) {
   }
 }
 
-// Cargar favoritos del usuario al init
-async function loadFavoritos() {
-  const { data } = await sb.from('favoritos').select('producto_id').eq('user_id', APP.user.id);
-  APP.favoritos = (data || []).map(f => f.producto_id);
+// Favoritos guardados en localStorage (sin tabla en DB por ahora)
+function loadFavoritos() {
+  try { APP.favoritos = JSON.parse(localStorage.getItem('ricwer_favs') || '[]'); }
+  catch(_) { APP.favoritos = []; }
 }

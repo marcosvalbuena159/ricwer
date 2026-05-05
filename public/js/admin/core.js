@@ -179,7 +179,7 @@ function populatePagoSelects() {
 async function loadDB() {
   const [ordenes, productos, categorias, pedidos, arreglos, ventas, clientes] = await Promise.all([
     sb.from('ordenes').select('*, profiles(nombre,apellido), orden_items(*)').order('created_at', { ascending: false }),
-    sb.from('productos').select('*').order('id', { ascending: false }),
+    sb.from('productos').select('*, producto_imagenes(url, es_principal, orden)').order('fecha_creado', { ascending: false }),
     sb.from('categorias').select('*').order('orden'),
     sb.from('pedidos').select('*, abonos!abonos_pedido_id_fkey(*)').order('fecha', { ascending: false }),
     sb.from('arreglos').select('*, abonos!abonos_arreglo_id_fkey(*)').order('fecha', { ascending: false }),
@@ -226,11 +226,21 @@ const ESTADO_ARREGLO_CLASS = {
 // ─── 12. SUPABASE CRUD ───────────────────────────────────────────────
 async function saveProducto(obj) {
   const { error } = await sb.from('productos').upsert({
-    id: obj.id, nombre: obj.nombre, ref: obj.ref, marca: obj.marca,
-    categoria: obj.categoria, talla: obj.talla, color: obj.color,
-    costo: Number(obj.costo)||0, precio: Number(obj.precio)||0,
-    stock: Number(obj.stock)||0, stockmin: Number(obj.stockmin)||2,
-    notas: obj.notas, activo: true,
+    id: obj.id,
+    nombre: obj.nombre,
+    ref: obj.ref,
+    marca: obj.marca,
+    categoria: obj.categoria,
+    genero: obj.genero || 'Unisex',
+    costo: Number(obj.costo) || 0,
+    precio: Number(obj.precio) || 0,
+    precio_descuento: obj.precio_descuento ? Number(obj.precio_descuento) : null,
+    stock: Number(obj.stock) || 0,
+    stockmin: Number(obj.stockmin) || 2,
+    activo: obj.activo !== false,
+    destacado: !!obj.destacado,
+    es_nuevo: !!obj.es_nuevo,
+    notas: obj.notas,
   }, { onConflict: 'id' });
   if (error) { toast('Error: ' + error.message, 'error'); throw error; }
   toast('Producto guardado ✓', 'success');
@@ -258,7 +268,7 @@ async function savePedido(obj) {
   const { abonos, ...data } = obj;
   const { error } = await sb.from('pedidos').upsert({
     id: data.id, cliente: data.cliente, tel: data.tel, descripcion: data.descripcion,
-    anticipo: Number(data.anticipo)||0, pago_anticipo: data.pagoAnticipo,
+    anticipo: Number(data.anticipo)||0, pago_anticipo: data.pago_anticipo || data.pagoAnticipo,
     total: Number(data.total)||0, entrega: data.entrega || null,
     estado: data.estado, notas: data.notas, fecha: data.fecha,
   }, { onConflict: 'id' });
@@ -298,4 +308,128 @@ async function deleteItemDB(tabla, id) {
   const { error } = await sb.from(tabla).delete().eq('id', id);
   if (error) { toast('Error: ' + error.message, 'error'); throw error; }
   toast('Eliminado ✓');
+}
+// ─── 13. EXPORTAR REPORTES CSV ────────────────────────────────────────
+function exportCSV(filename, rows) {
+  if (!rows || !rows.length) { toast('Sin datos para exportar', 'error'); return; }
+  const headers = Object.keys(rows[0]);
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row =>
+      headers.map(h => {
+        const val = row[h] == null ? '' : String(row[h]);
+        return val.includes(',') || val.includes('"') || val.includes('\n')
+          ? `"${val.replace(/"/g, '""')}"` : val;
+      }).join(',')
+    )
+  ].join('\n');
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename + '_' + today() + '.csv';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+  toast('✅ Archivo descargado: ' + a.download, 'success');
+}
+
+async function exportReporteClientes() {
+  const rows = DB.clientes.map(c => ({
+    Nombre: (c.nombre || '') + ' ' + (c.apellido || ''),
+    Telefono: c.telefono || '',
+    Activo: c.activo ? 'Sí' : 'No',
+    Rol: c.rol || 'cliente',
+    Registro: c.created_at ? c.created_at.slice(0, 10) : '',
+  }));
+  exportCSV('reporte_clientes', rows);
+}
+
+async function exportReporteVentas() {
+  const rows = DB.ventas.map(v => ({
+    Fecha: v.fecha || '',
+    Cliente: v.cliente || '',
+    Producto: v.producto_nombre || '',
+    Cantidad: v.cantidad || 1,
+    Precio: v.precio || 0,
+    Total: v.total || 0,
+    Pago: v.pago || '',
+    Notas: v.notas || '',
+  }));
+  exportCSV('reporte_ventas', rows);
+}
+
+async function exportReporteProductos() {
+  const rows = DB.productos.map(p => ({
+    Nombre: p.nombre || '',
+    Referencia: p.ref || '',
+    Marca: p.marca || '',
+    Categoria: p.categoria || '',
+    Genero: p.genero || '',
+    Costo: p.costo || 0,
+    Precio: p.precio || 0,
+    PrecioDescuento: p.precio_descuento || '',
+    Stock: p.stock || 0,
+    StockMinimo: p.stockmin || 2,
+    Activo: p.activo ? 'Sí' : 'No',
+    Destacado: p.destacado ? 'Sí' : 'No',
+    Nuevo: p.es_nuevo ? 'Sí' : 'No',
+  }));
+  exportCSV('reporte_productos', rows);
+}
+
+async function exportReportePedidos() {
+  const rows = DB.pedidos.map(p => ({
+    Fecha: p.fecha || '',
+    Cliente: p.cliente || '',
+    Telefono: p.tel || '',
+    Descripcion: p.descripcion || '',
+    Total: p.total || 0,
+    Anticipo: p.anticipo || 0,
+    Abonado: getAbonados(p),
+    Saldo: getSaldo(p),
+    Estado: p.estado || '',
+    Entrega: p.entrega || '',
+  }));
+  exportCSV('reporte_pedidos', rows);
+}
+
+async function exportReporteArreglos() {
+  const rows = DB.arreglos.map(a => ({
+    Fecha: a.fecha || '',
+    Cliente: a.cliente || '',
+    Telefono: a.tel || '',
+    Tipo: a.tipo || '',
+    Descripcion: a.descripcion || '',
+    Costo: a.costo || 0,
+    Anticipo: a.anticipo || 0,
+    Abonado: getAbonados(a),
+    Saldo: getSaldo(a),
+    Estado: a.estado || '',
+    Entrega: a.entrega || '',
+  }));
+  exportCSV('reporte_arreglos', rows);
+}
+
+// ─── 14. IMÁGENES DE PRODUCTO (Storage) ──────────────────────────────
+async function uploadProductImage(prodId, file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const path = `${prodId}/${Date.now()}.${ext}`;
+  const { error: upErr } = await sb.storage.from('productos').upload(path, file, { upsert: true });
+  if (upErr) { toast('Error subiendo imagen: ' + upErr.message, 'error'); return null; }
+  const { data: { publicUrl } } = sb.storage.from('productos').getPublicUrl(path);
+  const { error: dbErr } = await sb.from('producto_imagenes').insert({
+    producto_id: prodId, url: publicUrl, storage_path: path,
+    es_principal: false, orden: 0,
+  });
+  if (dbErr) { toast('Error guardando imagen: ' + dbErr.message, 'error'); return null; }
+  return { url: publicUrl, path };
+}
+
+async function deleteProductImage(imgId, storagePath) {
+  if (storagePath) await sb.storage.from('productos').remove([storagePath]);
+  await sb.from('producto_imagenes').delete().eq('id', imgId);
+}
+
+async function setPrincipalImage(imgId, prodId) {
+  await sb.from('producto_imagenes').update({ es_principal: false }).eq('producto_id', prodId);
+  await sb.from('producto_imagenes').update({ es_principal: true }).eq('id', imgId);
 }

@@ -46,6 +46,9 @@
       </button>
 
       <div class="nav-group-label">Clientes</div>
+      <button data-sec="clientes" onclick="showSection('clientes')">
+        <span class="nav-icon">👥</span> Clientes
+      </button>
       <button data-sec="mensajes" onclick="showSection('mensajes')">
         <span class="nav-icon">💬</span> Mensajes
         <span class="nav-badge" id="badge-mensajes" style="display:none"></span>
@@ -124,6 +127,13 @@
                 <option>Tenis</option><option>Botines</option><option>Sandalias</option><option>Tacones</option>
                 <option>Botas</option><option>Mocasines</option><option>Baletas</option><option>Otro</option>
               </select>
+              <select class="filter-select" id="prod-vis-filter" onchange="renderProductos()">
+                <option value="">Todos</option>
+                <option value="destacado">★ Destacados</option>
+                <option value="nuevo">🆕 Novedades</option>
+                <option value="inactivo">⛔ Inactivos</option>
+              </select>
+              <button class="btn btn-ghost btn-sm" onclick="exportReporteProductos()" title="Exportar CSV">⬇️ CSV</button>
             </div>
             <div class="tbl-wrap">
               <table>
@@ -146,7 +156,7 @@
         <div class="panel">
           <div class="panel-header">
             <div class="panel-title">Registro de ventas</div>
-            <button class="btn btn-accent" onclick="openNuevaVenta()">+ Nueva venta</button>
+            <div style="display:flex;gap:8px"><button class="btn btn-ghost btn-sm" onclick="exportReporteVentas()">⬇️ CSV</button><button class="btn btn-accent" onclick="openNuevaVenta()">+ Nueva venta</button></div>
           </div>
           <div class="panel-body">
             <div class="search-bar">
@@ -175,7 +185,7 @@
         <div class="panel">
           <div class="panel-header">
             <div class="panel-title">Pedidos & Encargos</div>
-            <button class="btn btn-primary" onclick="openNuevoPedido()">+ Nuevo pedido</button>
+            <div style="display:flex;gap:8px"><button class="btn btn-ghost btn-sm" onclick="exportReportePedidos()">⬇️ CSV</button><button class="btn btn-primary" onclick="openNuevoPedido()">+ Nuevo pedido</button></div>
           </div>
           <div class="panel-body">
             <div class="search-bar">
@@ -210,7 +220,7 @@
         <div class="panel">
           <div class="panel-header">
             <div class="panel-title">Arreglos & Reparaciones</div>
-            <button class="btn btn-accent" onclick="openNuevoArreglo()">+ Nuevo arreglo</button>
+            <div style="display:flex;gap:8px"><button class="btn btn-ghost btn-sm" onclick="exportReporteArreglos()">⬇️ CSV</button><button class="btn btn-accent" onclick="openNuevoArreglo()">+ Nuevo arreglo</button></div>
           </div>
           <div class="panel-body">
             <div class="search-bar">
@@ -234,6 +244,35 @@
             </div>
             <div id="arr-empty" class="empty-state" style="display:none">
               <div class="e-icon">🔧</div><p>No hay arreglos registrados.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ──────── CLIENTES ──────── -->
+      <div id="s-clientes" class="section">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">👥 Clientes registrados</div>
+            <button class="btn btn-ghost btn-sm" onclick="exportReporteClientes()">⬇️ CSV</button>
+          </div>
+          <div class="panel-body">
+            <div class="search-bar">
+              <div class="search-input-wrap">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="cli-search" placeholder="Buscar por nombre, teléfono..." oninput="renderClientes()">
+              </div>
+            </div>
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr>
+                  <th>Nombre</th><th>Teléfono</th><th>Registro</th><th>Órdenes</th><th>Estado</th>
+                </tr></thead>
+                <tbody id="cli-tbody"></tbody>
+              </table>
+            </div>
+            <div id="cli-empty" class="empty-state" style="display:none">
+              <div class="e-icon">👥</div><p>No hay clientes registrados.</p>
             </div>
           </div>
         </div>
@@ -316,13 +355,26 @@
       <div class="field"><label>Categoría</label>
         <select id="p-cat"><option>Tenis</option><option>Botines</option><option>Sandalias</option><option>Tacones</option><option>Botas</option><option>Mocasines</option><option>Baletas</option><option>Otro</option></select>
       </div>
-      <div class="field"><label>Talla</label><input id="p-talla" placeholder="36, 37, 38..."></div>
-      <div class="field"><label>Color</label><input id="p-color" placeholder="Negro, Blanco, Café..."></div>
+      <div class="field"><label>Género</label>
+        <select id="p-genero"><option value="Unisex">Unisex</option><option value="Hombre">Hombre</option><option value="Mujer">Mujer</option><option value="Niño">Niño</option><option value="Niña">Niña</option></select>
+      </div>
       <div class="field"><label>Precio de compra ($)</label><input id="p-costo" type="number" min="0" placeholder="0"></div>
       <div class="field"><label>Precio de venta ($)</label><input id="p-precio" type="number" min="0" placeholder="0"></div>
+      <div class="field"><label>Precio con descuento ($) <span style="font-size:10px;color:var(--text-muted)">(opcional)</span></label><input id="p-precio-desc" type="number" min="0" placeholder="Dejar vacío si no aplica"></div>
       <div class="field"><label>Stock disponible</label><input id="p-stock" type="number" min="0" placeholder="0"></div>
       <div class="field"><label>Stock mínimo (alerta)</label><input id="p-stockmin" type="number" min="0" value="2"></div>
-      <div class="field field-full"><label>Notas</label><textarea id="p-notas" placeholder="Detalles adicionales..."></textarea></div>
+      <div class="field field-full" style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="p-activo" checked style="width:16px;height:16px;accent-color:var(--gold)"> Activo (visible en tienda)
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="p-destacado" style="width:16px;height:16px;accent-color:var(--gold)"> ★ Destacado (home)
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="p-nuevo" style="width:16px;height:16px;accent-color:var(--gold)"> 🆕 Novedad (home)
+        </label>
+      </div>
+      <div class="field field-full"><label>Notas internas</label><textarea id="p-notas" placeholder="Detalles adicionales (solo admin)..."></textarea></div>
     </div>
     <input type="hidden" id="p-id">
     <div class="modal-footer">
@@ -463,6 +515,28 @@
   </div>
 </div>
 
+<!-- IMÁGENES PRODUCTO -->
+<div class="modal-overlay" id="modal-imagenes">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-header">
+      <h3>🖼️ Imágenes — <span id="img-modal-nombre"></span></h3>
+      <button class="modal-close" onclick="closeModal('modal-imagenes')">✕</button>
+    </div>
+    <div style="padding:16px 24px">
+      <div id="img-modal-list" style="display:flex;gap:10px;flex-wrap:wrap;min-height:80px;margin-bottom:16px"></div>
+      <div style="border:2px dashed var(--border);border-radius:var(--radius-md);padding:16px;text-align:center">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">Subir imagen(s) — JPG, PNG, WEBP. Máx 2MB c/u.</p>
+        <input type="file" id="img-file-input" accept="image/*" multiple style="display:none" onchange="uploadImageUI()">
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('img-file-input').click()">📁 Seleccionar archivo(s)</button>
+      </div>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:10px">Toca ★ para marcar como imagen principal. La principal aparece en la tienda.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-imagenes')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- LOADER -->
 <div id="admin-loader" style="display:none;position:fixed;inset:0;background:rgba(26,20,16,0.45);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(2px)">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px 32px;text-align:center;box-shadow:var(--shadow-lg)">
@@ -479,7 +553,166 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./js/admin/core.js"></script>
+<script>
+// ─── SHARED HELPERS (necesarios antes de los otros scripts) ──────────
 
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+const MEDIOS_PAGO = ['Efectivo','Nequi','Daviplata','Bancolombia','Tarjeta débito','Tarjeta crédito','Transferencia'];
+function mediosPagoOptions(selected = 'Efectivo') {
+  return MEDIOS_PAGO.map(m => `<option${m === selected ? ' selected' : ''}>${m}</option>`).join('');
+}
+
+const PAGO_ICONS = { Nequi:'💜', Daviplata:'🔴', Bancolombia:'🟡', Efectivo:'💵', Transferencia:'🏦', 'Tarjeta débito':'💳', 'Tarjeta crédito':'💳' };
+function pagoIcon(pago) {
+  const icon = PAGO_ICONS[pago] || '💵';
+  return `<span class="pago-icon">${icon} ${pago || 'Efectivo'}</span>`;
+}
+
+function badge(text, cls = 'b-gray') {
+  return `<span class="badge ${cls}">${text}</span>`;
+}
+
+function progressBar(item) {
+  const total = Number(item.total || item.costo || 0);
+  if (!total) return '';
+  const abonado = Number(item.anticipo || 0) + getAbonados(item);
+  const pct = Math.min(100, Math.round((abonado / total) * 100));
+  return `<div class="progress-bar-wrap" style="margin-top:4px"><div class="progress-bar" style="width:${pct}%"></div></div>`;
+}
+
+function getSaldo(item) {
+  const total = Number(item.total || item.costo || 0);
+  const anticipo = Number(item.anticipo || 0);
+  const abonado = getAbonados(item);
+  return Math.max(0, total - anticipo - abonado);
+}
+
+function getAbonados(item) {
+  return (item.abonos || []).reduce((s, a) => s + Number(a.monto || 0), 0);
+}
+
+function showLoader(on) {
+  const el = document.getElementById('admin-loader');
+  el.style.display = on ? 'flex' : 'none';
+}
+
+// ─── NAV RESPONSIVE ──────────────────────────────────────────────────
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  const open = sb.classList.toggle('open');
+  ov.style.display = open ? 'block' : 'none';
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').style.display = 'none';
+}
+
+// Cerrar sidebar al seleccionar sección en mobile
+const _showSection = showSection;
+window.showSection = function(id) {
+  _showSection(id);
+  if (window.innerWidth <= 768) closeSidebar();
+};
+
+// ─── SUPABASE CRUD ───────────────────────────────────────────────────
+async function saveProducto(obj) {
+  const { error } = await sb.from('productos').upsert({
+    id: obj.id, nombre: obj.nombre, ref: obj.ref, marca: obj.marca,
+    categoria: obj.categoria, talla: obj.talla, color: obj.color,
+    costo: obj.costo, precio: obj.precio, stock: obj.stock,
+    stockmin: obj.stockmin, notas: obj.notas, activo: true,
+  }, { onConflict: 'id' });
+  if (error) { toast('Error al guardar producto: ' + error.message, 'error'); throw error; }
+  toast('Producto guardado ✓', 'success');
+}
+
+async function saveVenta(obj) {
+  const { error } = await sb.from('ventas').upsert({
+    id: obj.id, cliente: obj.cliente, producto_id: obj.productoId,
+    producto_nombre: obj.productoNombre, cantidad: obj.cantidad,
+    precio: obj.precio, total: obj.total, pago: obj.pago,
+    fecha: obj.fecha, notas: obj.notas,
+  }, { onConflict: 'id' });
+  if (error) { toast('Error al registrar venta: ' + error.message, 'error'); throw error; }
+  toast('Venta registrada ✓', 'success');
+}
+
+async function updateStock(prodId, newStock) {
+  const { error } = await sb.from('productos').update({ stock: newStock }).eq('id', prodId);
+  if (error) console.warn('updateStock error:', error.message);
+}
+
+async function savePedido(obj) {
+  const { abonos, ...data } = obj;
+  const { error } = await sb.from('pedidos').upsert({
+    id: data.id, cliente: data.cliente, tel: data.tel, desc: data.desc,
+    anticipo: data.anticipo, pago_anticipo: data.pagoAnticipo,
+    total: data.total, entrega: data.entrega || null,
+    estado: data.estado, notas: data.notas, fecha: data.fecha,
+  }, { onConflict: 'id' });
+  if (error) { toast('Error al guardar pedido: ' + error.message, 'error'); throw error; }
+  toast('Pedido guardado ✓', 'success');
+}
+
+async function saveArreglo(obj) {
+  const { abonos, ...data } = obj;
+  const { error } = await sb.from('arreglos').upsert({
+    id: data.id, cliente: data.cliente, tel: data.tel, tipo: data.tipo,
+    desc: data.desc, costo: data.costo, anticipo: data.anticipo,
+    pago_anticipo: data.pagoAnticipo, entrega: data.entrega || null,
+    estado: data.estado, fecha: data.fecha, total: data.total,
+  }, { onConflict: 'id' });
+  if (error) { toast('Error al guardar arreglo: ' + error.message, 'error'); throw error; }
+  toast('Arreglo guardado ✓', 'success');
+}
+
+async function saveAbono(tabla, itemId, abono) {
+  const col = tabla === 'pedidos' ? 'pedido_id' : 'arreglo_id';
+  const { error } = await sb.from('abonos').insert({
+    id: abono.id, [col]: itemId, monto: abono.monto,
+    pago: abono.pago, nota: abono.nota, fecha: abono.fecha,
+  });
+  if (error) { toast('Error al registrar abono: ' + error.message, 'error'); throw error; }
+  toast('Abono registrado ✓', 'success');
+}
+
+async function deleteAbonoDB(abonoId) {
+  const { error } = await sb.from('abonos').delete().eq('id', abonoId);
+  if (error) { toast('Error al eliminar abono: ' + error.message, 'error'); throw error; }
+}
+
+async function deleteItemDB(tabla, id) {
+  const { error } = await sb.from(tabla).delete().eq('id', id);
+  if (error) { toast('Error al eliminar: ' + error.message, 'error'); throw error; }
+  toast('Eliminado ✓');
+}
+
+// ─── BADGES DE ESTADO ─────────────────────────────────────────────────
+const ESTADO_PEDIDO_CLASS = {
+  'Pendiente':           'b-yellow',
+  'En proceso':          'b-blue',
+  'Listo para entregar': 'b-green',
+  'Entregado':           'b-gray',
+  'Cancelado':           'b-red',
+};
+const ESTADO_ARREGLO_CLASS = {
+  'Recibido':  'b-yellow',
+  'En proceso':'b-blue',
+  'Listo':     'b-green',
+  'Entregado': 'b-gray',
+};
+
+function updateNavBadges() {
+  const ped = DB.pedidos.filter(p => p.estado !== 'Entregado' && p.estado !== 'Cancelado').length;
+  const arr = DB.arreglos.filter(a => a.estado !== 'Entregado').length;
+  const bp = document.getElementById('badge-pedidos');
+  const ba = document.getElementById('badge-arreglos');
+  if (bp) { bp.textContent = ped; bp.style.display = ped ? '' : 'none'; }
+  if (ba) { ba.textContent = arr; ba.style.display = arr ? '' : 'none'; }
+}
+</script>
 <script src="./js/admin/pedidos_arreglos.js"></script>
 <script src="./js/admin/productos.js"></script>
 <script src="./js/admin/ventas.js"></script>
@@ -490,7 +723,7 @@ let CURRENT_MSG = null;
 
 async function loadMensajes() {
   const { data } = await sb.from('mensajes')
-    .select('*, profiles(nombre, apellido, email_visitante)')
+    .select('*, profiles(nombre, apellido)')
     .order('created_at', { ascending: false });
   MENSAJES = data || [];
   const noLeidos = MENSAJES.filter(m => !m.leido_admin).length;
@@ -604,6 +837,29 @@ function closeMsgDetail() {
   document.getElementById('msg-detail-view').style.display='none';
   document.getElementById('msg-list-view').style.display='';
   CURRENT_MSG = null;
+}
+
+// ─── CLIENTES ────────────────────────────────────────────────────────
+function renderClientes() {
+  const q = (document.getElementById('cli-search')?.value || '').toLowerCase();
+  let list = DB.clientes.filter(c =>
+    !q || `${c.nombre} ${c.apellido} ${c.telefono}`.toLowerCase().includes(q)
+  );
+  const tbody = document.getElementById('cli-tbody');
+  const empty = document.getElementById('cli-empty');
+  if (!list.length) { if(empty) empty.style.display='block'; if(tbody) tbody.innerHTML=''; return; }
+  if (empty) empty.style.display = 'none';
+  tbody.innerHTML = list.map(c => {
+    const nombre = `${c.nombre||''} ${c.apellido||''}`.trim() || '—';
+    const ordenes = DB.ordenes.filter(o => o.user_id === c.id).length;
+    return `<tr>
+      <td style="font-weight:500">${nombre}</td>
+      <td style="color:var(--text-muted)">${c.telefono || '—'}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${c.created_at ? c.created_at.slice(0,10) : '—'}</td>
+      <td><span class="badge b-blue">${ordenes} órd.</span></td>
+      <td>${c.activo ? badge('Activo','b-green') : badge('Inactivo','b-gray')}</td>
+    </tr>`;
+  }).join('');
 }
 
 // ─── INIT ────────────────────────────────────────────────────────────

@@ -7,7 +7,8 @@ async function renderPerfil() {
 
   const { data: dirs } = await sb.from('direcciones').select('*').eq('user_id', APP.user.id).order('es_principal', { ascending: false });
   const { count: ordCount } = await sb.from('ordenes').select('id', { count: 'exact' }).eq('user_id', APP.user.id);
-  const { data: favs } = await sb.from('favoritos').select('producto_id').eq('user_id', APP.user.id);
+  // Favoritos desde localStorage (tabla no implementada en DB)
+  const favs = APP.favoritos || [];
 
   const nombre   = APP.profile?.nombre || '';
   const apellido = APP.profile?.apellido || '';
@@ -21,7 +22,7 @@ async function renderPerfil() {
         <div class="perfil-email">${APP.user?.email || ''}</div>
         <div class="perfil-meta">
           <div class="perfil-stat"><strong>${ordCount || 0}</strong>Pedidos</div>
-          <div class="perfil-stat"><strong>${favs?.length || 0}</strong>Favoritos</div>
+          <div class="perfil-stat"><strong>${favs.length || 0}</strong>Favoritos</div>
         </div>
       </div>
     </div>

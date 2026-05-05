@@ -63,7 +63,7 @@ async function savePedidoUI() {
   const obj = {
     id, cliente,
     tel: document.getElementById('pe-tel').value.trim(),
-    descripcion: document.getElementById('pe-desc').value.trim(),
+    descripcion: document.getElementById('pe-desc').value.trim(),  // columna 'descripcion' en DB
     anticipo: Number(document.getElementById('pe-anticipo').value || 0),
     pagoAnticipo: document.getElementById('pe-pago-anticipo').value,
     total: Number(document.getElementById('pe-total').value || 0),

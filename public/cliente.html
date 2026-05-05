@@ -141,6 +141,17 @@
       </div>
       <div id="home-destacados" class="products-grid" style="background:none;gap:16px;padding:0 32px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))"></div>
     </section>
+    <!-- Novedades -->
+    <section id="section-novedades" style="padding:0 0 80px">
+      <div style="padding:0 32px;margin-bottom:32px;display:flex;justify-content:space-between;align-items:flex-end">
+        <div>
+          <p style="font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:6px">Recién llegado</p>
+          <h2 style="font-family:var(--font-display);font-size:36px;letter-spacing:2px">NOVEDADES</h2>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="showSection('catalogo')">Ver todo →</button>
+      </div>
+      <div id="home-novedades" class="products-grid" style="background:none;gap:16px;padding:0 32px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))"></div>
+    </section>
   </div>
 
   <!-- ── CATÁLOGO ── -->
@@ -232,7 +243,7 @@
   <!-- ── NOSOTROS ── -->
   <div class="section" id="s-nosotros">
     <div style="max-width:800px;margin:0 auto;padding:60px 32px 80px">
-      <p style="font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:16px">Medellín, Colombia</p>
+      <p style="font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:16px">Bogotá, Colombia</p>
       <h1 style="font-family:var(--font-display);font-size:clamp(48px,6vw,80px);letter-spacing:2px;line-height:0.95;margin-bottom:32px">SOBRE<br>RICWER</h1>
       <div style="height:2px;width:60px;background:var(--gold);margin-bottom:40px"></div>
       <p style="font-size:16px;color:var(--text-muted);line-height:1.9;margin-bottom:24px">
@@ -406,6 +417,7 @@
 <div id="toast-container"></div>
 
 <!-- ─── SCRIPTS ──────────────────────────────────────────────────── -->
+<script src="https://checkout.wompi.co/widget.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./js/shared/supabase.js"></script>
 <script src="./js/client/catalogo.js"></script>
@@ -413,6 +425,7 @@
 <script src="./js/client/checkout.js"></script>
 <script src="./js/client/perfil.js"></script>
 <script src="./js/client/mensajes.js"></script>
+<script src="./js/client/ordenes.js"></script>
 <script src="./js/client/app.js"></script>
 </body>
 </html>
