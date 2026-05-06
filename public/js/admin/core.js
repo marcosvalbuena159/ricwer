@@ -333,12 +333,28 @@ function exportCSV(filename, rows) {
 }
 
 async function exportReporteClientes() {
-  const rows = DB.clientes.map(c => ({
-    Nombre: (c.nombre || '') + ' ' + (c.apellido || ''),
-    Telefono: c.telefono || '',
-    Activo: c.activo ? 'Sí' : 'No',
-    Rol: c.rol || 'cliente',
-    Registro: c.created_at ? c.created_at.slice(0, 10) : '',
+  // Usar la vista reporte_clientes del schema para incluir email
+  const { data, error } = await sb.from('reporte_clientes').select('*');
+  if (error) {
+    // Fallback a datos locales si la vista no está disponible
+    const rows = DB.clientes.map(c => ({
+      Nombre: (c.nombre || '') + ' ' + (c.apellido || ''),
+      Telefono: c.telefono || '',
+      Activo: c.activo ? 'Sí' : 'No',
+      Registro: c.created_at ? c.created_at.slice(0, 10) : '',
+      Ordenes: DB.ordenes.filter(o => o.user_id === c.id).length,
+      TotalComprado: DB.ordenes.filter(o => o.user_id === c.id).reduce((s,o) => s + Number(o.total||0), 0),
+    }));
+    exportCSV('reporte_clientes', rows);
+    return;
+  }
+  const rows = (data || []).map(r => ({
+    Nombre: r.nombre_completo || '',
+    Telefono: r.telefono || '',
+    Activo: r.activo ? 'Sí' : 'No',
+    Registro: r.fecha_registro ? r.fecha_registro.slice(0,10) : '',
+    Ordenes: r.total_ordenes || 0,
+    TotalComprado: r.total_comprado || 0,
   }));
   exportCSV('reporte_clientes', rows);
 }

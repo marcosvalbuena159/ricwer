@@ -266,7 +266,7 @@
             <div class="tbl-wrap">
               <table>
                 <thead><tr>
-                  <th>Nombre</th><th>Teléfono</th><th>Registro</th><th>Órdenes</th><th>Estado</th>
+                  <th>Cliente</th><th>Registro</th><th>Órdenes</th><th>Total comprado</th><th>Estado</th>
                 </tr></thead>
                 <tbody id="cli-tbody"></tbody>
               </table>
@@ -537,6 +537,72 @@
   </div>
 </div>
 
+<!-- SEGURIDAD -->
+<div class="modal-overlay" id="modal-seguridad">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <h3>🔒 Seguridad de la cuenta</h3>
+      <button class="modal-close" onclick="closeModal('modal-seguridad')">✕</button>
+    </div>
+    <div style="padding:20px 24px;display:flex;flex-direction:column;gap:20px">
+
+      <!-- Cambiar email -->
+      <div>
+        <div style="font-size:11px;letter-spacing:2px;font-weight:700;color:var(--text-muted);margin-bottom:12px">CORREO ELECTRÓNICO</div>
+        <div class="field">
+          <label>Email actual</label>
+          <input id="seg-email-actual" type="email" disabled
+            style="opacity:0.6;cursor:default;background:var(--surface-2)">
+        </div>
+        <div class="field">
+          <label>Nuevo email</label>
+          <input id="seg-email-nuevo" type="email" placeholder="nuevo@correo.com">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="cambiarEmail()" style="margin-top:4px">
+          Actualizar email
+        </button>
+      </div>
+
+      <hr style="border:none;border-top:1px solid var(--border)">
+
+      <!-- Cambiar contraseña -->
+      <div>
+        <div style="font-size:11px;letter-spacing:2px;font-weight:700;color:var(--text-muted);margin-bottom:12px">CONTRASEÑA</div>
+        <div class="field">
+          <label>Nueva contraseña</label>
+          <div style="position:relative">
+            <input id="seg-pass-nueva" type="password" placeholder="Mínimo 8 caracteres"
+              style="padding-right:40px" oninput="evalPassSeguridad(this.value)">
+            <button onclick="togglePassVis('seg-pass-nueva',this)"
+              style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px">👁</button>
+          </div>
+          <!-- Barra de seguridad -->
+          <div id="pass-strength-bar" style="height:4px;border-radius:2px;margin-top:6px;background:var(--border);overflow:hidden">
+            <div id="pass-strength-fill" style="height:100%;width:0%;transition:width 0.3s,background 0.3s;border-radius:2px"></div>
+          </div>
+          <div id="pass-strength-label" style="font-size:11px;color:var(--text-muted);margin-top:4px"></div>
+        </div>
+        <div class="field">
+          <label>Confirmar contraseña</label>
+          <div style="position:relative">
+            <input id="seg-pass-confirm" type="password" placeholder="Repite la contraseña"
+              style="padding-right:40px">
+            <button onclick="togglePassVis('seg-pass-confirm',this)"
+              style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px">👁</button>
+          </div>
+        </div>
+        <button class="btn btn-accent btn-sm" onclick="cambiarPassword()" style="margin-top:4px">
+          Actualizar contraseña
+        </button>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-seguridad')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- LOADER -->
 <div id="admin-loader" style="display:none;position:fixed;inset:0;background:rgba(26,20,16,0.45);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(2px)">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px 32px;text-align:center;box-shadow:var(--shadow-lg)">
@@ -681,25 +747,126 @@ function closeMsgDetail() {
   CURRENT_MSG = null;
 }
 
+// ─── SEGURIDAD ────────────────────────────────────────────────────────
+function openSeguridad() {
+  const { data: { user } } = sb.auth.getUser().then(({ data }) => {
+    if (data?.user) {
+      document.getElementById('seg-email-actual').value = data.user.email || '';
+      document.getElementById('seg-email-nuevo').value = '';
+    }
+  });
+  document.getElementById('seg-pass-nueva').value = '';
+  document.getElementById('seg-pass-confirm').value = '';
+  document.getElementById('pass-strength-fill').style.width = '0%';
+  document.getElementById('pass-strength-label').textContent = '';
+}
+
+// Llenar email al abrir modal
+document.getElementById('modal-seguridad').addEventListener('click', e => {
+  if (!document.getElementById('seg-email-actual').value) openSeguridad();
+}, { once: false });
+const _origOpenModal = openModal;
+window.openModal = function(id) {
+  _origOpenModal(id);
+  if (id === 'modal-seguridad') openSeguridad();
+};
+
+function togglePassVis(inputId, btn) {
+  const input = document.getElementById(inputId);
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.textContent = show ? '🙈' : '👁';
+}
+
+function evalPassSeguridad(val) {
+  const fill  = document.getElementById('pass-strength-fill');
+  const label = document.getElementById('pass-strength-label');
+  if (!val) { fill.style.width = '0%'; label.textContent = ''; return; }
+  let score = 0;
+  if (val.length >= 8)  score++;
+  if (val.length >= 12) score++;
+  if (/[A-Z]/.test(val)) score++;
+  if (/[0-9]/.test(val)) score++;
+  if (/[^a-zA-Z0-9]/.test(val)) score++;
+  const levels = [
+    { pct:'20%', color:'#ef4444', text:'Muy débil'  },
+    { pct:'40%', color:'#f97316', text:'Débil'      },
+    { pct:'60%', color:'#eab308', text:'Regular'    },
+    { pct:'80%', color:'#3b82f6', text:'Fuerte'     },
+    { pct:'100%',color:'#22c55e', text:'Muy fuerte' },
+  ];
+  const l = levels[Math.min(score, 4)];
+  fill.style.width = l.pct;
+  fill.style.background = l.color;
+  label.style.color = l.color;
+  label.textContent = l.text;
+}
+
+async function cambiarEmail() {
+  const nuevo = document.getElementById('seg-email-nuevo').value.trim();
+  if (!nuevo || !nuevo.includes('@')) { toast('Ingresa un email válido', 'error'); return; }
+  showLoader(true);
+  const { error } = await sb.auth.updateUser({ email: nuevo });
+  showLoader(false);
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  toast('✅ Revisa tu nuevo correo para confirmar el cambio', 'success');
+  document.getElementById('seg-email-nuevo').value = '';
+}
+
+async function cambiarPassword() {
+  const nueva    = document.getElementById('seg-pass-nueva').value;
+  const confirm  = document.getElementById('seg-pass-confirm').value;
+  if (!nueva || nueva.length < 8) { toast('La contraseña debe tener al menos 8 caracteres', 'error'); return; }
+  if (nueva !== confirm) { toast('Las contraseñas no coinciden', 'error'); return; }
+  showLoader(true);
+  const { error } = await sb.auth.updateUser({ password: nueva });
+  showLoader(false);
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  toast('✅ Contraseña actualizada correctamente', 'success');
+  document.getElementById('seg-pass-nueva').value = '';
+  document.getElementById('seg-pass-confirm').value = '';
+  document.getElementById('pass-strength-fill').style.width = '0%';
+  document.getElementById('pass-strength-label').textContent = '';
+  closeModal('modal-seguridad');
+}
+
 // ─── CLIENTES ────────────────────────────────────────────────────────
 function renderClientes() {
   const q = (document.getElementById('cli-search')?.value || '').toLowerCase();
   let list = DB.clientes.filter(c =>
-    !q || `${c.nombre} ${c.apellido} ${c.telefono}`.toLowerCase().includes(q)
+    !q || `${c.nombre||''} ${c.apellido||''} ${c.telefono||''}`.toLowerCase().includes(q)
   );
   const tbody = document.getElementById('cli-tbody');
   const empty = document.getElementById('cli-empty');
-  if (!list.length) { if(empty) empty.style.display='block'; if(tbody) tbody.innerHTML=''; return; }
+  if (!list.length) {
+    if (empty) empty.style.display = 'block';
+    if (tbody) tbody.innerHTML = '';
+    return;
+  }
   if (empty) empty.style.display = 'none';
-  tbody.innerHTML = list.map(c => {
-    const nombre = `${c.nombre||''} ${c.apellido||''}`.trim() || '—';
-    const ordenes = DB.ordenes.filter(o => o.user_id === c.id).length;
+  tbody.innerHTML = list.map(cl => {
+    const nombre    = `${cl.nombre||''} ${cl.apellido||''}`.trim() || '—';
+    const iniciales = ((cl.nombre||'?')[0] + (cl.apellido||'')[0]).toUpperCase();
+    const ords      = DB.ordenes.filter(o => o.user_id === cl.id);
+    const totalComp = ords.reduce((s, o) => s + Number(o.total || 0), 0);
     return `<tr>
-      <td style="font-weight:500">${nombre}</td>
-      <td style="color:var(--text-muted)">${c.telefono || '—'}</td>
-      <td style="font-size:12px;color:var(--text-muted)">${c.created_at ? c.created_at.slice(0,10) : '—'}</td>
-      <td><span class="badge b-blue">${ordenes} órd.</span></td>
-      <td>${c.activo ? badge('Activo','b-green') : badge('Inactivo','b-gray')}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:34px;height:34px;border-radius:50%;background:var(--gold-bg);
+                      border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;
+                      font-size:13px;font-weight:700;color:var(--gold);flex-shrink:0">${iniciales}</div>
+          <div>
+            <div style="font-weight:500">${nombre}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${cl.telefono || 'Sin teléfono'}</div>
+          </div>
+        </div>
+      </td>
+      <td style="font-size:12px;color:var(--text-muted)">${cl.created_at ? cl.created_at.slice(0,10) : '—'}</td>
+      <td>
+        <span class="badge b-blue">${ords.length} orden${ords.length !== 1 ? 'es' : ''}</span>
+      </td>
+      <td style="font-weight:600;color:var(--blue-dark)">${fmtMoney(totalComp)}</td>
+      <td>${cl.activo ? badge('Activo','b-green') : badge('Inactivo','b-gray')}</td>
     </tr>`;
   }).join('');
 }
@@ -728,6 +895,7 @@ async function initApp() {
   await loadMensajes();
   renderDashboard();
   renderMensajes();
+  renderClientes();
   updateNavBadges();
 }
 

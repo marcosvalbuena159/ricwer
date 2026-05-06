@@ -14,13 +14,28 @@ let CHECKOUT = {
 const COSTO_ENVIO_DOM = 10000; // $10.000 fijo
 
 // ─── WOMPI CONFIG ────────────────────────────────────────────────────
-// Cambia por tu llave pública de Wompi (Producción o Sandbox)
-// Sandbox:    pub_test_XXXXXXXXXXXXXXXX
-// Producción: pub_live_XXXXXXXXXXXXXXXX
-const WOMPI_PUB_KEY = 'pub_test_XXXXXXXXXXXXXXXXXXXXXXXX';
+// ⚠️  REEMPLAZA estos valores con los de tu cuenta en https://wompi.co
+//
+// SANDBOX (pruebas): entra a Developers > API Keys en el dashboard de Wompi
+// PRODUCCIÓN:        solicita activación en wompi.co → usar pub_live_...
+//
+// Tarjetas de prueba sandbox:
+//   Visa aprobada:  4242 4242 4242 4242  CVV: 123  Exp: 12/29
+//   Mastercard:     5555 5555 5555 4444  CVV: 123  Exp: 12/29
+//   Nequi sandbox:  3991111111  (se aprueba automáticamente)
 
-// URL a la que Wompi redirige tras el pago (tu dominio)
+const WOMPI_ENV    = 'sandbox';   // 'sandbox' | 'production'
+const WOMPI_PUB_KEY = WOMPI_ENV === 'production'
+  ? 'pub_live_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'   // ← tu llave de producción
+  : 'pub_test_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';  // ← tu llave de sandbox
+
+// URL a la que Wompi redirige tras el pago
 const WOMPI_REDIRECT_URL = window.location.origin + '/cliente.html#ordenes';
+
+// API base de Wompi para verificar transacciones
+const WOMPI_API_BASE = WOMPI_ENV === 'production'
+  ? 'https://production.wompi.co/v1'
+  : 'https://sandbox.wompi.co/v1';
 
 const METODOS_PAGO = [
   { id: 'wompi',   icon: '💳', label: 'Pagar en línea',    sub: 'Tarjeta, Nequi, PSE, Bancolombia · Powered by Wompi' },
@@ -59,7 +74,7 @@ async function renderCheckout() {
         <button class="delivery-tab ${CHECKOUT.tipoEntrega === 'recogida' ? 'active' : ''}" onclick="setTipoEntrega('recogida')">
           <div class="dt-icon">🏪</div>
           <div class="dt-title">Recoger en tienda</div>
-          <div class="dt-desc">Medellín · Gratis<br>Listo en 1-2 días hábiles</div>
+          <div class="dt-desc">Bogotá · Gratis<br>Listo en 1-2 días hábiles</div>
         </button>
         <button class="delivery-tab ${CHECKOUT.tipoEntrega === 'domicilio' ? 'active' : ''}" onclick="setTipoEntrega('domicilio')">
           <div class="dt-icon">🚚</div>
@@ -70,7 +85,7 @@ async function renderCheckout() {
       ${CHECKOUT.tipoEntrega === 'recogida' ? `
         <div style="padding:14px 16px;background:var(--gold-bg);border:1px solid rgba(201,168,76,0.2);border-radius:var(--radius);font-size:13px;color:var(--text-muted)">
           📍 <strong style="color:var(--text)">Tienda RICWER</strong><br>
-          Medellín, Antioquia · Horario: Lun-Sáb 8am-7pm<br>
+          Bogotá, Colombia · Horario: Lun-Sáb 8am-7pm<br>
           Te avisaremos cuando tu pedido esté listo.
         </div>
       ` : `
@@ -333,7 +348,7 @@ async function confirmarOrden() {
     const totalFinal = Math.max(0, totals.subtotal - totals.descuento + totals.envio);
 
     // Dirección texto
-    let dirTexto = CHECKOUT.tipoEntrega === 'recogida' ? 'Recogida en tienda — Medellín' : null;
+    let dirTexto = CHECKOUT.tipoEntrega === 'recogida' ? 'Recogida en tienda — RICWER Bogotá' : null;
     if (CHECKOUT.tipoEntrega === 'domicilio' && CHECKOUT.direccionId) {
       const { data: d } = await sb.from('direcciones').select('*').eq('id', CHECKOUT.direccionId).single();
       if (d) dirTexto = `${d.direccion}, ${d.ciudad}, ${d.departamento}`;
@@ -396,12 +411,28 @@ async function confirmarOrden() {
     CHECKOUT.cupon = null;
     CHECKOUT.cuponDescuento = 0;
 
+    // ── Notificar al admin (best-effort, no bloquea) ──
+    try {
+      const adminProfiles = await sb.from('profiles').select('id').eq('rol','admin');
+      if (adminProfiles.data?.length) {
+        const notifs = adminProfiles.data.map(a => ({
+          user_id: a.id,
+          tipo: 'orden',
+          titulo: `Nueva orden ${orden.numero_orden}`,
+          cuerpo: `Total: ${fmtMoneyFull(totalFinal)} · ${CHECKOUT.metodoPago === 'wompi' ? 'Wompi' : 'Contra entrega'}`,
+          url: '#ordenes',
+          leida: false,
+        }));
+        await sb.from('notificaciones').insert(notifs);
+      }
+    } catch (_) {}
+
     // ── Enrutar según método de pago ──
     if (CHECKOUT.metodoPago === 'wompi') {
       abrirWompi(orden, totalFinal, nombre, apellido, tel);
     } else {
       // Contra entrega: confirmar directamente
-      CHECKOUT = { tipoEntrega: 'recogida', direccionId: null, metodoPago: 'wompi', cupon: null, cuponDescuento: 0, costoEnvio: 0 };
+      Object.assign(CHECKOUT, { tipoEntrega: 'recogida', direccionId: null, metodoPago: 'wompi', cupon: null, cuponDescuento: 0, costoEnvio: 0 });
       mostrarConfirmacionOrden(orden);
     }
 
@@ -533,7 +564,7 @@ async function _onPagoAprobado(orden, transactionId) {
     referencia_pago: transactionId,
   }).eq('id', orden.id);
 
-  CHECKOUT = { tipoEntrega: 'recogida', direccionId: null, metodoPago: 'wompi', cupon: null, cuponDescuento: 0, costoEnvio: 0 };
+  Object.assign(CHECKOUT, { tipoEntrega: 'recogida', direccionId: null, metodoPago: 'wompi', cupon: null, cuponDescuento: 0, costoEnvio: 0 });
   mostrarConfirmacionOrden({ ...orden, estado_pago: 'pagado' });
 }
 
