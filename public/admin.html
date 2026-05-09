@@ -6,7 +6,6 @@
   <meta name="theme-color" content="#1a1410">
   <title>Ricwer — Sistema de Gestión</title>
   <link rel="stylesheet" href="./css/styles.css">
-  <link rel="icon" type="image/ico" href="Ricwer_Logo.ico" />
 </head>
 <body>
 
@@ -139,8 +138,8 @@
             <div class="tbl-wrap">
               <table>
                 <thead><tr>
-                  <th>Producto</th><th>Categoría</th><th>Talla</th><th>Color</th>
-                  <th>Costo</th><th>Precio</th><th>Stock</th><th>Estado</th><th></th>
+                  <th style="width:44px"></th><th>Producto</th><th>Categoría</th><th>Género</th>
+                  <th>Costo</th><th>Precio</th><th>Stock</th><th>Estado</th><th>Acciones</th>
                 </tr></thead>
                 <tbody id="prod-tbody"></tbody>
               </table>
@@ -359,6 +358,7 @@
       <div class="field"><label>Género</label>
         <select id="p-genero"><option value="Unisex">Unisex</option><option value="Hombre">Hombre</option><option value="Mujer">Mujer</option><option value="Niño">Niño</option><option value="Niña">Niña</option></select>
       </div>
+      <div class="field field-full"><label>Descripción <span style="font-size:10px;color:var(--text-muted)">(visible en tienda)</span></label><textarea id="p-descripcion" placeholder="Describe el producto para los clientes..." rows="2"></textarea></div>
       <div class="field"><label>Precio de compra ($)</label><input id="p-costo" type="number" min="0" placeholder="0"></div>
       <div class="field"><label>Precio de venta ($)</label><input id="p-precio" type="number" min="0" placeholder="0"></div>
       <div class="field"><label>Precio con descuento ($) <span style="font-size:10px;color:var(--text-muted)">(opcional)</span></label><input id="p-precio-desc" type="number" min="0" placeholder="Dejar vacío si no aplica"></div>
@@ -381,6 +381,7 @@
     <div class="modal-footer">
       <div class="btn-row">
         <button class="btn btn-primary" onclick="saveProductoUI()">💾 Guardar producto</button>
+        <button id="p-btn-imagenes" class="btn btn-ghost" onclick="saveAndOpenImages()" style="display:none">🖼️ Guardar e ir a imágenes</button>
         <button class="btn btn-ghost" onclick="closeModal('modal-prod')">Cancelar</button>
       </div>
     </div>
@@ -525,12 +526,17 @@
     </div>
     <div style="padding:16px 24px">
       <div id="img-modal-list" style="display:flex;gap:10px;flex-wrap:wrap;min-height:80px;margin-bottom:16px"></div>
-      <div style="border:2px dashed var(--border);border-radius:var(--radius-md);padding:16px;text-align:center">
-        <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">Subir imagen(s) — JPG, PNG, WEBP. Máx 2MB c/u.</p>
+      <div id="img-drop-zone" style="border:2px dashed var(--border);border-radius:var(--radius-md);padding:24px 16px;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s"
+        onclick="document.getElementById('img-file-input').click()"
+        ondragover="event.preventDefault();this.style.borderColor='var(--gold)';this.style.background='var(--gold-bg)'"
+        ondragleave="this.style.borderColor='var(--border)';this.style.background=''"
+        ondrop="event.preventDefault();this.style.borderColor='var(--border)';this.style.background='';handleImgDrop(event)">
+        <div style="font-size:32px;margin-bottom:8px">📸</div>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">Arrastra imágenes aquí o haz clic para seleccionar<br><span style="font-size:11px">JPG, PNG, WEBP · Máx 2MB c/u · Múltiples archivos</span></p>
         <input type="file" id="img-file-input" accept="image/*" multiple style="display:none" onchange="uploadImageUI()">
-        <button class="btn btn-primary btn-sm" onclick="document.getElementById('img-file-input').click()">📁 Seleccionar archivo(s)</button>
+        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();document.getElementById('img-file-input').click()">📁 Seleccionar archivo(s)</button>
       </div>
-      <p style="font-size:11px;color:var(--text-muted);margin-top:10px">Toca ★ para marcar como imagen principal. La principal aparece en la tienda.</p>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:10px">Toca ★ para marcar como imagen principal. La principal aparece en la tienda y en la tabla.</p>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-imagenes')">Cerrar</button>

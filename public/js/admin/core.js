@@ -225,9 +225,10 @@ const ESTADO_ARREGLO_CLASS = {
 
 // ─── 12. SUPABASE CRUD ───────────────────────────────────────────────
 async function saveProducto(obj) {
-  const { error } = await sb.from('productos').upsert({
+  const { data, error } = await sb.from('productos').upsert({
     id: obj.id,
     nombre: obj.nombre,
+    descripcion: obj.descripcion || null,
     ref: obj.ref,
     marca: obj.marca,
     categoria: obj.categoria,
@@ -241,9 +242,10 @@ async function saveProducto(obj) {
     destacado: !!obj.destacado,
     es_nuevo: !!obj.es_nuevo,
     notas: obj.notas,
-  }, { onConflict: 'id' });
+  }, { onConflict: 'id' }).select().single();
   if (error) { toast('Error: ' + error.message, 'error'); throw error; }
   toast('Producto guardado ✓', 'success');
+  return data;
 }
 
 async function saveVenta(obj) {
