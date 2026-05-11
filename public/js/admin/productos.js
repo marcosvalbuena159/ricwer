@@ -74,7 +74,7 @@ function renderDashboard() {
     lsEl.innerHTML = low.map(p => `
       <div class="alert alert-warn">
         <span>⚠️</span>
-        <div><strong>${p.nombre}</strong>${p.ref ? ' · Ref: ' + p.ref : ''}${p.marca ? ' · ' + p.marca : ''}<br>
+        <div><strong>${p.nombre}</strong>${p.talla ? ' · T' + p.talla : ''}${p.color ? ' · ' + p.color : ''}<br>
         <span style="font-size:12px">Solo <strong>${p.stock}</strong> en stock (mín: ${p.stockmin || 2})</span></div>
       </div>`).join('');
   }
@@ -141,7 +141,7 @@ function renderProductos() {
 function openNuevoProducto() {
   document.getElementById('modal-prod-title').textContent = 'Nuevo producto';
   document.getElementById('p-id').value = '';
-  ['p-nombre','p-ref','p-marca','p-notas','p-precio-desc','p-descripcion'].forEach(id => {
+  ['p-nombre','p-ref','p-marca','p-notas','p-precio-desc'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   ['p-costo','p-precio','p-stock'].forEach(id => document.getElementById(id).value = '');
@@ -151,19 +151,19 @@ function openNuevoProducto() {
   const dest = document.getElementById('p-destacado'); if (dest) dest.checked = false;
   const nuevo = document.getElementById('p-nuevo'); if (nuevo) nuevo.checked = false;
   const activo = document.getElementById('p-activo'); if (activo) activo.checked = true;
-  // Ocultar botón de imágenes en creación nueva (hasta guardar)
-  const btnImg = document.getElementById('p-btn-imagenes'); if (btnImg) btnImg.style.display = 'none';
   openModal('modal-prod');
 }
 
 async function saveProductoUI() {
-  const localId = document.getElementById('p-id').value;
-  const isNew = !localId;
-  const id = localId || uid();
+  const existingId = document.getElementById('p-id').value.trim();
+  const isNew = !existingId;
   const nombre = document.getElementById('p-nombre').value.trim();
   if (!nombre) { alert('Escribe el nombre del producto.'); return; }
+
   const obj = {
-    id, nombre,
+    id:               existingId || null,
+    _isNew:           isNew,
+    nombre,
     ref:              document.getElementById('p-ref').value.trim(),
     marca:            document.getElementById('p-marca').value.trim(),
     categoria:        document.getElementById('p-cat').value,
@@ -179,6 +179,7 @@ async function saveProductoUI() {
     es_nuevo:         !!document.getElementById('p-nuevo')?.checked,
     notas:            document.getElementById('p-notas').value.trim(),
   };
+
   showLoader(true);
   let saved;
   try {
@@ -187,22 +188,24 @@ async function saveProductoUI() {
     showLoader(false);
     return;
   }
-  // Usar el ID real devuelto por Supabase (por si uid() difirió)
-  const realId = saved?.id || id;
+
+  // Usar el UUID real que devuelve Supabase
+  const realId = saved.id;
   obj.id = realId;
 
-  // Preservar imágenes en memoria
+  // Actualizar DB local
   const existing = DB.productos.find(p => p.id === realId);
   obj.producto_imagenes = existing?.producto_imagenes || [];
   const idx = DB.productos.findIndex(p => p.id === realId);
   if (idx >= 0) DB.productos[idx] = obj; else DB.productos.push(obj);
+
   showLoader(false);
   closeModal('modal-prod');
   renderProductos();
 
-  // Si es producto nuevo, ofrecer subir imágenes de inmediato
+  // Si es nuevo, ofrecer subir imágenes ahora
   if (isNew) {
-    if (confirm('✅ Producto guardado. ¿Quieres agregar imágenes ahora?')) {
+    if (confirm('Producto guardado. \u00bfAgregar im\u00e1genes ahora?')) {
       openImagenesModal(realId);
     }
   }
@@ -219,7 +222,6 @@ function editProducto(id) {
   document.getElementById('p-costo').value = p.costo || '';
   document.getElementById('p-precio').value = p.precio || '';
   document.getElementById('p-precio-desc') && (document.getElementById('p-precio-desc').value = p.precio_descuento || '');
-  document.getElementById('p-descripcion') && (document.getElementById('p-descripcion').value = p.descripcion || '');
   document.getElementById('p-stock').value = p.stock || '';
   document.getElementById('p-stockmin').value = p.stockmin || 2;
   document.getElementById('p-notas').value = p.notas || '';
@@ -227,9 +229,6 @@ function editProducto(id) {
   const dest = document.getElementById('p-destacado'); if (dest) dest.checked = !!p.destacado;
   const nuevo = document.getElementById('p-nuevo'); if (nuevo) nuevo.checked = !!p.es_nuevo;
   const activo = document.getElementById('p-activo'); if (activo) activo.checked = p.activo !== false;
-  // Mostrar botón directo a imágenes al editar
-  const btnImg = document.getElementById('p-btn-imagenes');
-  if (btnImg) btnImg.style.display = '';
   openModal('modal-prod');
 }
 
@@ -309,56 +308,4 @@ async function deleteImgUI(imgId, storagePath) {
   showLoader(false);
   await renderImagenesModal();
   renderProductos();
-}
-
-// ─── GUARDAR Y ABRIR IMÁGENES (botón directo en edición) ─────────────
-async function saveAndOpenImages() {
-  const id = document.getElementById('p-id').value;
-  if (!id) { alert('Este botón solo funciona al editar un producto existente.'); return; }
-  // Guardar primero
-  const nombre = document.getElementById('p-nombre').value.trim();
-  if (!nombre) { alert('Escribe el nombre del producto.'); return; }
-  const obj = {
-    id, nombre,
-    ref:              document.getElementById('p-ref').value.trim(),
-    marca:            document.getElementById('p-marca').value.trim(),
-    categoria:        document.getElementById('p-cat').value,
-    genero:           document.getElementById('p-genero')?.value || 'Unisex',
-    descripcion:      document.getElementById('p-descripcion')?.value.trim() || null,
-    costo:            document.getElementById('p-costo').value || 0,
-    precio:           document.getElementById('p-precio').value || 0,
-    precio_descuento: document.getElementById('p-precio-desc')?.value || null,
-    stock:            document.getElementById('p-stock').value || 0,
-    stockmin:         document.getElementById('p-stockmin').value || 2,
-    activo:           document.getElementById('p-activo')?.checked !== false,
-    destacado:        !!document.getElementById('p-destacado')?.checked,
-    es_nuevo:         !!document.getElementById('p-nuevo')?.checked,
-    notas:            document.getElementById('p-notas').value.trim(),
-  };
-  showLoader(true);
-  try { await saveProducto(obj); } catch(e) { showLoader(false); return; }
-  const existing = DB.productos.find(p => p.id === id);
-  obj.producto_imagenes = existing?.producto_imagenes || [];
-  const idx = DB.productos.findIndex(p => p.id === id);
-  if (idx >= 0) DB.productos[idx] = obj; else DB.productos.push(obj);
-  showLoader(false);
-  closeModal('modal-prod');
-  renderProductos();
-  // Abrir modal de imágenes con el ID ya conocido
-  openImagenesModal(id);
-}
-
-// ─── DRAG & DROP DE IMÁGENES ─────────────────────────────────────────
-function handleImgDrop(event) {
-  const files = Array.from(event.dataTransfer?.files || []).filter(f => f.type.startsWith('image/'));
-  if (!files.length) { toast('Solo se aceptan imágenes', 'error'); return; }
-  if (!_imgProdId) { toast('Abre el modal de imágenes desde un producto guardado', 'error'); return; }
-  (async () => {
-    showLoader(true);
-    for (const file of files) await uploadProductImage(_imgProdId, file);
-    showLoader(false);
-    await renderImagenesModal();
-    renderProductos();
-    toast(`✅ ${files.length} imagen(s) subida(s)`, 'success');
-  })();
 }

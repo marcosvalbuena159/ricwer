@@ -225,24 +225,31 @@ const ESTADO_ARREGLO_CLASS = {
 
 // ─── 12. SUPABASE CRUD ───────────────────────────────────────────────
 async function saveProducto(obj) {
-  const { data, error } = await sb.from('productos').upsert({
-    id: obj.id,
-    nombre: obj.nombre,
-    descripcion: obj.descripcion || null,
-    ref: obj.ref,
-    marca: obj.marca,
-    categoria: obj.categoria,
-    genero: obj.genero || 'Unisex',
-    costo: Number(obj.costo) || 0,
-    precio: Number(obj.precio) || 0,
+  const payload = {
+    nombre:           obj.nombre,
+    descripcion:      obj.descripcion || null,
+    ref:              obj.ref || null,
+    marca:            obj.marca || null,
+    categoria:        obj.categoria,
+    genero:           obj.genero || 'Unisex',
+    costo:            Number(obj.costo)  || 0,
+    precio:           Number(obj.precio) || 0,
     precio_descuento: obj.precio_descuento ? Number(obj.precio_descuento) : null,
-    stock: Number(obj.stock) || 0,
-    stockmin: Number(obj.stockmin) || 2,
-    activo: obj.activo !== false,
-    destacado: !!obj.destacado,
-    es_nuevo: !!obj.es_nuevo,
-    notas: obj.notas,
-  }, { onConflict: 'id' }).select().single();
+    stock:            Number(obj.stock)    || 0,
+    stockmin:         Number(obj.stockmin) || 2,
+    activo:           obj.activo !== false,
+    destacado:        !!obj.destacado,
+    es_nuevo:         !!obj.es_nuevo,
+    notas:            obj.notas || null,
+  };
+  let data, error;
+  if (obj._isNew) {
+    // Producto nuevo: INSERT sin id, Supabase genera UUID
+    ({ data, error } = await sb.from('productos').insert(payload).select().single());
+  } else {
+    // Producto existente: UPDATE por id
+    ({ data, error } = await sb.from('productos').update(payload).eq('id', obj.id).select().single());
+  }
   if (error) { toast('Error: ' + error.message, 'error'); throw error; }
   toast('Producto guardado ✓', 'success');
   return data;
