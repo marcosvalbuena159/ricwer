@@ -1,12 +1,13 @@
 // ─── RICWER CLIENT — catalogo.js ────────────────────────────────────
-let _catFilter = '';    // slug categoría activa
-let _catSearch = '';    // texto búsqueda
-let _catProducts = [];  // caché
+let _catFilter   = '';    // slug categoría activa
+let _catSearch   = '';    // texto búsqueda
+let _catTalla    = '';    // talla seleccionada para filtrar
+let _catProducts = [];    // caché
 
 // ─── RENDER CATÁLOGO ────────────────────────────────────────────────
 async function renderCatalogo(searchQ = null) {
   if (searchQ !== null) _catSearch = searchQ;
-  const grid = document.getElementById('cat-grid');
+  const grid    = document.getElementById('cat-grid');
   const countEl = document.getElementById('cat-count');
   if (!grid) return;
 
@@ -14,10 +15,8 @@ async function renderCatalogo(searchQ = null) {
     <div style="font-size:32px;margin-bottom:8px;animation:loaderSlide 1s infinite">⏳</div>Cargando productos...
   </div>`;
 
-  // Chips de categorías
   renderCatChips();
 
-  // Query Supabase
   let query = sb
     .from('productos')
     .select('*, producto_variantes(*), producto_imagenes(*)')
@@ -34,17 +33,36 @@ async function renderCatalogo(searchQ = null) {
   const genero = document.getElementById('genero-select')?.value;
   if (genero) query = query.eq('genero', genero);
 
-  // Sort
   const sort = document.getElementById('sort-select')?.value;
-  if (sort === 'precio_asc')  query = query.order('precio', { ascending: true });
+  if (sort === 'precio_asc')       query = query.order('precio', { ascending: true });
   else if (sort === 'precio_desc') query = query.order('precio', { ascending: false });
-  else if (sort === 'nombre') query = query.order('nombre');
-  else query = query.order('fecha_creado', { ascending: false });
+  else if (sort === 'nombre')      query = query.order('nombre');
+  else                             query = query.order('fecha_creado', { ascending: false });
 
   const { data, error } = await query;
-  if (error) { grid.innerHTML = `<div style="grid-column:1/-1;padding:60px;text-align:center;color:var(--red)">Error cargando productos.</div>`; return; }
+  if (error) {
+    grid.innerHTML = `<div style="grid-column:1/-1;padding:60px;text-align:center;color:var(--red)">Error cargando productos.</div>`;
+    return;
+  }
 
-  _catProducts = data || [];
+  let productos = data || [];
+
+  // ── Filtro por talla (client-side sobre variantes ya cargadas) ──
+  // PostgREST no soporta filtrar por columnas de tablas relacionadas
+  // directamente, así que filtramos después del fetch.
+  if (_catTalla) {
+    productos = productos.filter(p =>
+      (p.producto_variantes || []).some(
+        v => v.activo && v.stock > 0 && String(v.talla) === _catTalla
+      )
+    );
+  }
+
+  _catProducts = productos;
+
+  // Construir chips de tallas con los datos COMPLETOS (antes del filtro)
+  // para que el usuario siempre vea todas las tallas disponibles.
+  renderTallaChips(data || []);
 
   if (countEl) countEl.textContent = `${_catProducts.length} producto${_catProducts.length !== 1 ? 's' : ''}`;
 
@@ -70,8 +88,51 @@ function renderCatChips() {
   `;
 }
 
+// ─── CHIPS TALLAS ────────────────────────────────────────────────────
+// Muestra las tallas disponibles extraídas de TODOS los productos
+// en pantalla (antes del filtro de talla), ordenadas numéricamente.
+function renderTallaChips(productos) {
+  const el = document.getElementById('talla-chips');
+  if (!el) return;
+
+  // Recopilar tallas únicas con stock > 0
+  const tallasSet = new Set();
+  productos.forEach(p => {
+    (p.producto_variantes || []).forEach(v => {
+      if (v.activo && v.stock > 0) tallasSet.add(String(v.talla));
+    });
+  });
+
+  if (!tallasSet.size) { el.innerHTML = ''; return; }
+
+  // Ordenar: numéricas primero, luego texto (S, M, L, XL)
+  const tallas = [...tallasSet].sort((a, b) => {
+    const na = parseFloat(a), nb = parseFloat(b);
+    if (!isNaN(na) && !isNaN(nb)) return na - nb;
+    if (!isNaN(na)) return -1;
+    if (!isNaN(nb)) return 1;
+    return a.localeCompare(b);
+  });
+
+  el.innerHTML = `
+    <button class="chip-filter chip-talla ${!_catTalla ? 'active' : ''}" onclick="filterTalla('')">
+      Todas las tallas
+    </button>
+    ${tallas.map(t => `
+      <button class="chip-filter chip-talla ${_catTalla === t ? 'active' : ''}" onclick="filterTalla('${t}')">
+        T${t}
+      </button>
+    `).join('')}
+  `;
+}
+
 function filterCategoria(slug) {
   _catFilter = slug;
+  renderCatalogo();
+}
+
+function filterTalla(talla) {
+  _catTalla = talla;
   renderCatalogo();
 }
 
@@ -80,9 +141,14 @@ function productCardHTML(p) {
   const variantes = p.producto_variantes || [];
   const imagenes  = p.producto_imagenes  || [];
 
-  // Tallas únicas disponibles
-  const tallas = [...new Set(variantes.filter(v => v.activo && v.stock > 0).map(v => v.talla))];
-  const colores = [...new Set(variantes.filter(v => v.activo).map(v => v.color).filter(Boolean))];
+  // Tallas únicas con stock disponible
+  const tallas = [...new Set(
+    variantes.filter(v => v.activo && v.stock > 0).map(v => v.talla)
+  )].sort((a, b) => {
+    const na = parseFloat(a), nb = parseFloat(b);
+    return (!isNaN(na) && !isNaN(nb)) ? na - nb : String(a).localeCompare(String(b));
+  });
+
   const totalStock = variantes.reduce((s, v) => s + Number(v.stock || 0), 0) || Number(p.stock || 0);
   const agotado = totalStock === 0;
 
@@ -91,6 +157,12 @@ function productCardHTML(p) {
     ? Math.round((1 - p.precio_descuento / p.precio) * 100) : 0;
 
   const isFav = (APP.favoritos || []).includes(p.id);
+
+  // Si el usuario está filtrando por talla, resaltar esa talla en la tarjeta
+  const tallaChipsHTML = tallas.slice(0, 6).map(t => {
+    const esSeleccionada = _catTalla && String(t) === _catTalla;
+    return `<span class="pc-chip${esSeleccionada ? ' pc-chip-active' : ''}">T${t}</span>`;
+  }).join('') + (tallas.length > 6 ? `<span class="pc-chip">+${tallas.length - 6}</span>` : '');
 
   return `<div class="product-card" onclick="openProducto('${p.id}')">
     <div class="pc-img-wrap">
@@ -102,12 +174,12 @@ function productCardHTML(p) {
         ${agotado ? '<span class="pc-badge agotado">Agotado</span>' : ''}
       </div>
       <button class="pc-fav ${isFav ? 'active' : ''}" onclick="toggleFav(event,'${p.id}')">${isFav ? '❤️' : '🤍'}</button>
-      ${!agotado ? `<div class="pc-quick"><button onclick="quickAddCart(event,'${p.id}')">+ Agregar al carrito</button></div>` : ''}
+      ${!agotado ? `<div class="pc-quick"><button onclick="quickAddCart(event,'${p.id}')">Elegir talla</button></div>` : ''}
     </div>
     <div class="pc-info">
       ${p.marca ? `<div class="pc-brand">${p.marca}</div>` : ''}
       <div class="pc-name">${p.nombre}</div>
-      ${tallas.length ? `<div class="pc-chips">${tallas.slice(0, 5).map(t => `<span class="pc-chip">T${t}</span>`).join('')}${tallas.length > 5 ? `<span class="pc-chip">+${tallas.length - 5}</span>` : ''}</div>` : ''}
+      ${tallas.length ? `<div class="pc-chips">${tallaChipsHTML}</div>` : ''}
       <div class="pc-price">
         <span class="pc-price-main">${fmtMoneyFull(precioFinal)}</span>
         ${descuento > 0 ? `<span class="pc-price-old">${fmtMoneyFull(p.precio)}</span>` : ''}
@@ -117,11 +189,11 @@ function productCardHTML(p) {
 }
 
 // ─── DETALLE PRODUCTO ────────────────────────────────────────────────
-let _currentProd = null;
+let _currentProd     = null;
 let _selectedVariante = null;
-let _selectedColor = null;
-let _selectedTalla = null;
-let _cantidad = 1;
+let _selectedColor   = null;
+let _selectedTalla   = null;
+let _cantidad        = 1;
 
 async function openProducto(prodId) {
   showSection('producto');
@@ -138,24 +210,22 @@ async function openProducto(prodId) {
 
   _currentProd = p;
   _selectedColor = null;
-  _selectedTalla = null;
+  // Pre-seleccionar la talla del filtro activo si aplica
+  const variantesActivas = (p.producto_variantes || []).filter(v => v.activo && v.stock > 0);
+  _selectedTalla = _catTalla && variantesActivas.some(v => String(v.talla) === _catTalla)
+    ? _catTalla : null;
   _cantidad = 1;
 
   const variantes = p.producto_variantes || [];
   const imagenes  = p.producto_imagenes  || [];
-  // Rating no disponible (tabla resenas no implementada aún)
-  const avgRating = null;
 
-  // Colores únicos
-  const colores = [...new Map(variantes.filter(v => v.color).map(v => [v.color, v])).values()];
-  // Tallas por color seleccionado o todas
+  const colores  = [...new Map(variantes.filter(v => v.color).map(v => [v.color, v])).values()];
   const getTallas = (color = null) => variantes.filter(v => v.activo && (!color || v.color === color));
 
   const precioFinal = p.precio_descuento && p.precio_descuento < p.precio ? p.precio_descuento : p.precio;
   const descuento = p.precio_descuento && p.precio_descuento < p.precio
     ? Math.round((1 - p.precio_descuento / p.precio) * 100) : 0;
 
-  // Galería
   const imgList = imagenes.sort((a, b) => (b.es_principal ? 1 : 0) - (a.es_principal ? 1 : 0));
   const mainImg = imgList[0];
 
@@ -186,8 +256,6 @@ async function openProducto(prodId) {
       <h1 class="prod-name">${p.nombre}</h1>
       ${p.ref ? `<div class="prod-ref">REF: ${p.ref}</div>` : ''}
 
-
-
       <div class="prod-price-block">
         <span class="prod-price">${fmtMoneyFull(precioFinal)}</span>
         ${descuento > 0 ? `<span class="prod-price-old">${fmtMoneyFull(p.precio)}</span>` : ''}
@@ -196,12 +264,13 @@ async function openProducto(prodId) {
 
       ${p.descripcion ? `<p class="prod-desc">${p.descripcion}</p>` : ''}
 
-      ${colores.length > 0 ? `
+      ${colores.length > 1 ? `
         <div>
-          <div class="select-label">Color <span id="color-label">${_selectedColor || 'Selecciona un color'}</span></div>
+          <div class="select-label">Color <span id="color-label">${_selectedColor || 'Selecciona'}</span></div>
           <div class="color-selector" id="color-selector">
             ${colores.map(v => `
-              <div class="color-option" style="background:${v.color_hex || '#888'}"
+              <div class="color-option ${_selectedColor === v.color ? 'active' : ''}"
+                style="background:${v.color_hex || '#888'}"
                 onclick="selectColor('${v.color}')"
                 title="${v.color}">
                 <div class="color-tooltip">${v.color}</div>
@@ -212,9 +281,15 @@ async function openProducto(prodId) {
       ` : ''}
 
       <div>
-        <div class="select-label">Talla <span id="talla-label">${_selectedTalla || 'Selecciona una talla'}</span></div>
+        <div class="select-label">
+          Talla
+          <span id="talla-label">${_selectedTalla ? 'Talla ' + _selectedTalla : 'Selecciona una talla'}</span>
+        </div>
         <div class="size-selector" id="size-selector">
           ${renderTallasHTML(getTallas())}
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--text-dim)">
+          Solo se muestran tallas con stock disponible.
         </div>
       </div>
 
@@ -222,7 +297,7 @@ async function openProducto(prodId) {
         <div class="select-label">Cantidad</div>
         <div class="qty-selector">
           <button class="qty-btn" onclick="changeQty(-1)">−</button>
-          <div class="qty-val" id="qty-val">1</div>
+          <div class="qty-val" id="qty-val">${_cantidad}</div>
           <button class="qty-btn" onclick="changeQty(1)">+</button>
         </div>
       </div>
@@ -257,23 +332,27 @@ async function openProducto(prodId) {
     </div>
   `;
 
-  // Init estado del botón
   updateAddCartBtn();
 }
 
 function renderTallasHTML(variantes) {
   if (!variantes.length) return '<span style="font-size:13px;color:var(--text-muted)">Sin tallas disponibles</span>';
-  // Agrupar tallas únicas con su stock total
   const tallasMap = {};
   variantes.forEach(v => {
     if (!tallasMap[v.talla]) tallasMap[v.talla] = 0;
     tallasMap[v.talla] += Number(v.stock || 0);
   });
-  return Object.entries(tallasMap).map(([talla, stock]) => `
+  // Ordenar tallas numéricamente
+  const sorted = Object.entries(tallasMap).sort(([a], [b]) => {
+    const na = parseFloat(a), nb = parseFloat(b);
+    return (!isNaN(na) && !isNaN(nb)) ? na - nb : a.localeCompare(b);
+  });
+  return sorted.map(([talla, stock]) => `
     <button class="size-option ${stock === 0 ? 'agotado' : ''} ${_selectedTalla === talla ? 'active' : ''}"
       onclick="${stock > 0 ? `selectTalla('${talla}')` : ''}"
       ${stock === 0 ? 'disabled title="Agotado"' : ''}>
       ${talla}
+      ${stock > 0 && stock <= 3 ? `<span style="display:block;font-size:9px;color:var(--accent);line-height:1">¡${stock} par${stock > 1 ? 'es' : ''}!</span>` : ''}
     </button>
   `).join('');
 }
@@ -290,7 +369,6 @@ function selectColor(color) {
   document.querySelectorAll('.color-option').forEach(el => {
     el.classList.toggle('active', el.title === color);
   });
-  // Refiltrar tallas por color
   const variantes = _currentProd.producto_variantes.filter(v => v.activo && v.color === color);
   document.getElementById('size-selector').innerHTML = renderTallasHTML(variantes);
   updateAddCartBtn();
@@ -300,7 +378,7 @@ function selectTalla(talla) {
   _selectedTalla = talla;
   document.getElementById('talla-label').textContent = `Talla ${talla}`;
   document.querySelectorAll('.size-option').forEach(el => {
-    el.classList.toggle('active', el.textContent.trim() === talla);
+    el.classList.toggle('active', el.textContent.trim().startsWith(talla));
   });
   updateAddCartBtn();
 }
@@ -314,11 +392,9 @@ function changeQty(delta) {
 function updateAddCartBtn() {
   const btn = document.getElementById('add-cart-btn');
   if (!btn) return;
-  const variantes = _currentProd?.producto_variantes || [];
-  const hasVariantes = variantes.length > 0;
-  const tallasRequeridas = hasVariantes;
-  const listo = !tallasRequeridas || _selectedTalla;
-  btn.disabled = !listo;
+  const variantes  = _currentProd?.producto_variantes || [];
+  const listo = variantes.length === 0 || !!_selectedTalla;
+  btn.disabled    = !listo;
   btn.textContent = !listo ? 'Selecciona una talla' : '🛒 Agregar al carrito';
 }
 
@@ -334,40 +410,43 @@ async function addToCart() {
       v.activo
     );
     if (!variante) { toast('Selecciona talla y color', 'error'); return; }
+    if (variante.stock < _cantidad) {
+      toast(`Solo quedan ${variante.stock} par${variante.stock > 1 ? 'es' : ''} disponibles.`, 'error');
+      return;
+    }
   }
 
   const precioFinal = _currentProd.precio_descuento && _currentProd.precio_descuento < _currentProd.precio
     ? _currentProd.precio_descuento : _currentProd.precio;
 
   await addItemToCart({
-    variante_id: variante?.id || null,
-    producto_id: _currentProd.id,
+    variante_id:     variante?.id || null,
+    producto_id:     _currentProd.id,
     producto_nombre: _currentProd.nombre,
-    talla: _selectedTalla || variante?.talla,
-    color: _selectedColor || variante?.color,
+    talla:           _selectedTalla || variante?.talla,
+    color:           _selectedColor || variante?.color,
     precio_unitario: Number(precioFinal) + Number(variante?.precio_extra || 0),
-    cantidad: _cantidad,
-    imagen: _currentProd.producto_imagenes?.find(i => i.es_principal)?.url,
+    cantidad:        _cantidad,
+    imagen:          _currentProd.producto_imagenes?.find(i => i.es_principal)?.url,
   });
 
   const btn = document.getElementById('add-cart-btn');
   if (btn) { btn.classList.add('added'); setTimeout(() => btn.classList.remove('added'), 500); }
 }
 
-// Quick add desde grid (sin talla aún → abre el detalle)
+// Quick add desde grid → abre el detalle para elegir talla
 function quickAddCart(e, prodId) {
   e.stopPropagation();
   openProducto(prodId);
 }
 
-// Favoritos (guardado en localStorage — tabla favoritos no implementada en DB)
+// ─── FAVORITOS ───────────────────────────────────────────────────────
 async function toggleFav(e, prodId) {
   e.stopPropagation();
   toggleFavProd(prodId);
-  const btn = e.currentTarget;
   const isFav = (APP.favoritos || []).includes(prodId);
-  btn.textContent = isFav ? '❤️' : '🤍';
-  btn.classList.toggle('active', isFav);
+  e.currentTarget.textContent = isFav ? '❤️' : '🤍';
+  e.currentTarget.classList.toggle('active', isFav);
 }
 
 function toggleFavProd(prodId) {
@@ -392,7 +471,6 @@ function shareProd(nombre) {
   }
 }
 
-// Favoritos guardados en localStorage (sin tabla en DB por ahora)
 function loadFavoritos() {
   try { APP.favoritos = JSON.parse(localStorage.getItem('ricwer_favs') || '[]'); }
   catch(_) { APP.favoritos = []; }

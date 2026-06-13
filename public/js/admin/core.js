@@ -179,7 +179,7 @@ function populatePagoSelects() {
 async function loadDB() {
   const [ordenes, productos, categorias, pedidos, arreglos, ventas, clientes] = await Promise.all([
     sb.from('ordenes').select('*, profiles(nombre,apellido), orden_items(*)').order('created_at', { ascending: false }),
-    sb.from('productos').select('*, producto_imagenes(url, es_principal, orden)').order('fecha_creado', { ascending: false }),
+    sb.from('productos').select('*, producto_imagenes(url,es_principal,orden,id,storage_path), producto_variantes(*)').order('fecha_creado', { ascending: false }),
     sb.from('categorias').select('*').order('orden'),
     sb.from('pedidos').select('*, abonos!abonos_pedido_id_fkey(*)').order('fecha', { ascending: false }),
     sb.from('arreglos').select('*, abonos!abonos_arreglo_id_fkey(*)').order('fecha', { ascending: false }),
@@ -243,14 +243,14 @@ async function saveProducto(obj) {
     notas:            obj.notas || null,
   };
   let data, error;
-  if (obj._isNew) {
-    // Producto nuevo: INSERT sin id, Supabase genera UUID
+  if (!obj.id) {
+    // Nuevo producto → INSERT, Supabase genera el UUID
     ({ data, error } = await sb.from('productos').insert(payload).select().single());
   } else {
-    // Producto existente: UPDATE por id
+    // Editar existente → UPDATE
     ({ data, error } = await sb.from('productos').update(payload).eq('id', obj.id).select().single());
   }
-  if (error) { toast('Error: ' + error.message, 'error'); throw error; }
+  if (error) { toast('Error guardando: ' + error.message, 'error'); throw error; }
   toast('Producto guardado ✓', 'success');
   return data;
 }
@@ -258,7 +258,8 @@ async function saveProducto(obj) {
 async function saveVenta(obj) {
   const { error } = await sb.from('ventas').upsert({
     id: obj.id, cliente: obj.cliente,
-    producto_id: obj.productoId,
+    producto_id: obj.productoId || null,
+    variante_id: obj.varianteId || null,   // ← nuevo: talla/color específica
     producto_nombre: obj.productoNombre,
     cantidad: obj.cantidad, precio: Number(obj.precio)||0,
     total: Number(obj.total)||0, pago: obj.pago,

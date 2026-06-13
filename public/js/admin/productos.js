@@ -130,7 +130,8 @@ function renderProductos() {
       <td>
         <div style="display:flex;gap:4px;flex-wrap:wrap">
           <button class="btn btn-ghost btn-sm" onclick="editProducto('${p.id}')">✏️</button>
-          <button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="openImagenesModal('${p.id}')">🖼️</button>
+          <button class="btn btn-ghost btn-sm" onclick="openImagenesModal('${p.id}')" title="Imágenes">🖼️</button>
+          <button class="btn btn-ghost btn-sm" onclick="openVariantesModal('${p.id}')" title="Tallas/Colores">📐</button>
           <button class="btn btn-danger btn-sm" onclick="deleteItemUI('productos','${p.id}',renderProductos)">×</button>
         </div>
       </td>
@@ -161,8 +162,7 @@ async function saveProductoUI() {
   if (!nombre) { alert('Escribe el nombre del producto.'); return; }
 
   const obj = {
-    id:               existingId || null,
-    _isNew:           isNew,
+    id:               isNew ? null : existingId,   // null → INSERT en Supabase
     nombre,
     ref:              document.getElementById('p-ref').value.trim(),
     marca:            document.getElementById('p-marca').value.trim(),
@@ -171,7 +171,7 @@ async function saveProductoUI() {
     descripcion:      document.getElementById('p-descripcion')?.value.trim() || null,
     costo:            document.getElementById('p-costo').value || 0,
     precio:           document.getElementById('p-precio').value || 0,
-    precio_descuento: document.getElementById('p-precio-desc')?.value || null,
+    precio_descuento: document.getElementById('p-precio-desc')?.value.trim() || null,
     stock:            document.getElementById('p-stock').value || 0,
     stockmin:         document.getElementById('p-stockmin').value || 2,
     activo:           document.getElementById('p-activo')?.checked !== false,
@@ -189,13 +189,14 @@ async function saveProductoUI() {
     return;
   }
 
-  // Usar el UUID real que devuelve Supabase
+  // Usar el UUID real de Supabase
   const realId = saved.id;
   obj.id = realId;
 
-  // Actualizar DB local
-  const existing = DB.productos.find(p => p.id === realId);
-  obj.producto_imagenes = existing?.producto_imagenes || [];
+  // Actualizar DB en memoria
+  const existingLocal = DB.productos.find(p => p.id === realId);
+  obj.producto_imagenes = existingLocal?.producto_imagenes || [];
+  obj.producto_variantes = existingLocal?.producto_variantes || [];
   const idx = DB.productos.findIndex(p => p.id === realId);
   if (idx >= 0) DB.productos[idx] = obj; else DB.productos.push(obj);
 
@@ -203,9 +204,9 @@ async function saveProductoUI() {
   closeModal('modal-prod');
   renderProductos();
 
-  // Si es nuevo, ofrecer subir imágenes ahora
+  // Si es nuevo, ofrecer subir imágenes
   if (isNew) {
-    if (confirm('Producto guardado. \u00bfAgregar im\u00e1genes ahora?')) {
+    if (confirm('Producto guardado ✓\n\n¿Agregar imágenes ahora?')) {
       openImagenesModal(realId);
     }
   }
@@ -229,6 +230,8 @@ function editProducto(id) {
   const dest = document.getElementById('p-destacado'); if (dest) dest.checked = !!p.destacado;
   const nuevo = document.getElementById('p-nuevo'); if (nuevo) nuevo.checked = !!p.es_nuevo;
   const activo = document.getElementById('p-activo'); if (activo) activo.checked = p.activo !== false;
+  const descEl = document.getElementById('p-descripcion'); if (descEl) descEl.value = p.descripcion || '';
+  const btnImg = document.getElementById('p-btn-imagenes'); if (btnImg) btnImg.style.display = '';
   openModal('modal-prod');
 }
 
@@ -308,4 +311,169 @@ async function deleteImgUI(imgId, storagePath) {
   showLoader(false);
   await renderImagenesModal();
   renderProductos();
+}
+// ─── VARIANTES (Tallas / Colores) ────────────────────────────────────
+let _varProdId = null;
+
+async function openVariantesModal(prodId) {
+  _varProdId = prodId;
+  const prod = DB.productos.find(p => p.id === prodId);
+  document.getElementById('var-modal-nombre').textContent = prod?.nombre || 'Producto';
+  await renderVariantesModal();
+  openModal('modal-variantes');
+}
+
+async function renderVariantesModal() {
+  const { data: vars, error } = await sb
+    .from('producto_variantes')
+    .select('*')
+    .eq('producto_id', _varProdId)
+    .order('talla');
+
+  const prod = DB.productos.find(p => p.id === _varProdId);
+  if (prod) prod.producto_variantes = vars || [];
+
+  const el = document.getElementById('var-list');
+  if (!vars?.length) {
+    el.innerHTML = '<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:12px">Sin variantes. Agrega talla y color.</p>';
+    return;
+  }
+  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr style="border-bottom:1px solid var(--border)">
+      <th style="text-align:left;padding:6px 8px">Talla</th>
+      <th style="text-align:left;padding:6px 8px">Color</th>
+      <th style="text-align:left;padding:6px 8px">Stock</th>
+      <th style="text-align:left;padding:6px 8px">Precio extra</th>
+      <th style="text-align:left;padding:6px 8px">Activo</th>
+      <th></th>
+    </tr></thead>
+    <tbody>
+      ${vars.map(v => `<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:6px 8px;font-weight:600">${v.talla}</td>
+        <td style="padding:6px 8px">
+          ${v.color_hex ? `<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${v.color_hex};border:1px solid var(--border);vertical-align:middle;margin-right:4px"></span>` : ''}
+          ${v.color || '—'}
+        </td>
+        <td style="padding:6px 8px">
+          <input type="number" min="0" value="${v.stock}" style="width:60px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)"
+            onchange="updateVarianteStock('${v.id}', this.value)">
+        </td>
+        <td style="padding:6px 8px">${v.precio_extra > 0 ? '+$' + Number(v.precio_extra).toLocaleString('es-CO') : '—'}</td>
+        <td style="padding:6px 8px">${v.activo ? '✅' : '❌'}</td>
+        <td style="padding:6px 8px">
+          <button class="btn btn-danger btn-sm" onclick="deleteVarianteUI('${v.id}')">×</button>
+        </td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+async function saveVarianteUI() {
+  const talla = document.getElementById('var-talla').value.trim();
+  if (!talla) { alert('La talla es obligatoria'); return; }
+  const color    = document.getElementById('var-color').value.trim();
+  const colorHex = document.getElementById('var-color-hex').value || null;
+  const stock    = Number(document.getElementById('var-stock').value || 0);
+  const extra    = Number(document.getElementById('var-extra').value || 0);
+
+  showLoader(true);
+  const { error } = await sb.from('producto_variantes').insert({
+    producto_id:  _varProdId,
+    talla, color: color || null, color_hex: colorHex,
+    stock, precio_extra: extra, activo: true,
+  });
+  showLoader(false);
+
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  // Limpiar campos
+  ['var-talla','var-color','var-stock','var-extra'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('var-color-hex').value = '#000000';
+  await renderVariantesModal();
+  renderProductos();
+  toast('Variante agregada ✓', 'success');
+}
+
+async function updateVarianteStock(varId, newStock) {
+  await sb.from('producto_variantes').update({ stock: Number(newStock) }).eq('id', varId);
+  const prod = DB.productos.find(p => p.id === _varProdId);
+  if (prod?.producto_variantes) {
+    const v = prod.producto_variantes.find(v => v.id === varId);
+    if (v) v.stock = Number(newStock);
+  }
+}
+
+async function deleteVarianteUI(varId) {
+  if (!confirm('¿Eliminar esta variante?')) return;
+  showLoader(true);
+  await sb.from('producto_variantes').delete().eq('id', varId);
+  showLoader(false);
+  await renderVariantesModal();
+  renderProductos();
+}
+
+// ─── HANDLE DROP IMAGEN ──────────────────────────────────────────────
+function handleImgDrop(event) {
+  const files = Array.from(event.dataTransfer?.files || []).filter(f => f.type.startsWith('image/'));
+  if (!files.length) { toast('Solo se aceptan imágenes', 'error'); return; }
+  if (!_imgProdId) return;
+  (async () => {
+    showLoader(true);
+    for (const file of files) await uploadProductImage(_imgProdId, file);
+    showLoader(false);
+    await renderImagenesModal();
+    renderProductos();
+    toast(`✅ ${files.length} imagen(s) subida(s)`, 'success');
+  })();
+}
+
+// ─── GUARDAR Y ABRIR IMÁGENES / VARIANTES ────────────────────────────
+async function _saveCurrentProduct() {
+  const id = document.getElementById('p-id').value.trim();
+  if (!id) { alert('Guarda el producto primero con el botón principal.'); return null; }
+  const nombre = document.getElementById('p-nombre').value.trim();
+  if (!nombre) { alert('El nombre es obligatorio.'); return null; }
+  const obj = {
+    id,
+    nombre,
+    ref:              document.getElementById('p-ref').value.trim(),
+    marca:            document.getElementById('p-marca').value.trim(),
+    categoria:        document.getElementById('p-cat').value,
+    genero:           document.getElementById('p-genero')?.value || 'Unisex',
+    descripcion:      document.getElementById('p-descripcion')?.value.trim() || null,
+    costo:            document.getElementById('p-costo').value || 0,
+    precio:           document.getElementById('p-precio').value || 0,
+    precio_descuento: document.getElementById('p-precio-desc')?.value.trim() || null,
+    stock:            document.getElementById('p-stock').value || 0,
+    stockmin:         document.getElementById('p-stockmin').value || 2,
+    activo:           document.getElementById('p-activo')?.checked !== false,
+    destacado:        !!document.getElementById('p-destacado')?.checked,
+    es_nuevo:         !!document.getElementById('p-nuevo')?.checked,
+    notas:            document.getElementById('p-notas').value.trim(),
+  };
+  showLoader(true);
+  let saved;
+  try { saved = await saveProducto(obj); } catch(e) { showLoader(false); return null; }
+  const existing = DB.productos.find(p => p.id === id);
+  obj.producto_imagenes  = existing?.producto_imagenes  || [];
+  obj.producto_variantes = existing?.producto_variantes || [];
+  const idx = DB.productos.findIndex(p => p.id === id);
+  if (idx >= 0) DB.productos[idx] = obj; else DB.productos.push(obj);
+  showLoader(false);
+  return id;
+}
+
+async function saveAndOpenImages() {
+  const id = await _saveCurrentProduct();
+  if (!id) return;
+  closeModal('modal-prod');
+  renderProductos();
+  openImagenesModal(id);
+}
+
+async function saveAndOpenVariantes() {
+  const id = await _saveCurrentProduct();
+  if (!id) return;
+  closeModal('modal-prod');
+  renderProductos();
+  openVariantesModal(id);
 }

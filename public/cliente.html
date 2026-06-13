@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,426 +8,489 @@
   <link rel="stylesheet" href="./css/client.css" />
   <link rel="icon" type="image/ico" href="Ricwer_Logo.ico" />
 </head>
+
 <body>
 
-<!-- ─── LOADER ──────────────────────────────────────────────────── -->
-<div id="app-loader">
-  <div class="loader-logo">RIC<span>W</span>ER</div>
-  <div class="loader-line"><div class="loader-fill"></div></div>
-</div>
-
-<!-- ─── TOPBAR ──────────────────────────────────────────────────── -->
-<header id="topbar">
-  <div class="tb-left">
-    <button class="menu-toggle" id="menu-toggle">☰</button>
-    <div class="tb-logo" onclick="showSection('home')">RIC<span>W</span>ER</div>
-    <nav class="tb-nav">
-      <button class="tb-nav-btn active" onclick="showSection('home')" data-sec="home">Inicio</button>
-      <button class="tb-nav-btn" onclick="showSection('catalogo')" data-sec="catalogo">Catálogo</button>
-      <button class="tb-nav-btn" onclick="showSection('mensajes')" data-sec="mensajes">Soporte</button>
-      <button class="tb-nav-btn" onclick="showSection('nosotros')" data-sec="nosotros">Nosotros</button>
-    </nav>
-  </div>
-  <div class="tb-right">
-    <div class="tb-search-wrap">
-      <span class="tb-search-icon">🔍</span>
-      <input class="tb-search" id="tb-search" type="search" placeholder="Buscar producto..." oninput="onSearchInput()" />
+  <!-- ─── LOADER ──────────────────────────────────────────────────── -->
+  <div id="app-loader">
+    <div class="loader-logo">RIC<span>W</span>ER</div>
+    <div class="loader-line">
+      <div class="loader-fill"></div>
     </div>
-    <button class="icon-btn" id="notif-btn" onclick="toggleNotifPanel()">
-      🔔
-      <span class="notif-dot" id="notif-dot" style="display:none"></span>
-    </button>
-    <button class="icon-btn" onclick="openCart()">
-      🛒
-      <span class="cart-count" id="cart-count" style="display:none">0</span>
-    </button>
-    <button class="tb-avatar" id="tb-avatar" onclick="toggleUserMenu()">?</button>
   </div>
-</header>
 
-<!-- ─── MOBILE NAV ──────────────────────────────────────────────── -->
-<nav id="mobile-nav">
-  <button class="mob-nav-item active" onclick="showSection('home');closeMobileNav()" data-sec="home">🏠 Inicio</button>
-  <button class="mob-nav-item" onclick="showSection('catalogo');closeMobileNav()" data-sec="catalogo">👟 Catálogo</button>
-  <button class="mob-nav-item" onclick="showSection('perfil');closeMobileNav()" data-sec="perfil">👤 Mi cuenta</button>
-  <button class="mob-nav-item" onclick="showSection('ordenes');closeMobileNav()" data-sec="ordenes">📦 Mis pedidos</button>
-  <button class="mob-nav-item" onclick="showSection('mensajes');closeMobileNav()" data-sec="mensajes">💬 Soporte</button>
-  <button class="mob-nav-item" onclick="showSection('nosotros');closeMobileNav()" data-sec="nosotros">ℹ️ Nosotros</button>
-  <div class="divider" style="margin:8px 24px"></div>
-  <button class="mob-nav-item" onclick="doSignOut()">🚪 Cerrar sesión</button>
-</nav>
-<div id="mobile-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:279;" onclick="closeMobileNav()"></div>
-
-<!-- ─── USER MENU ────────────────────────────────────────────────── -->
-<div id="user-menu">
-  <div class="um-header">
-    <div class="um-name" id="um-name">—</div>
-    <div class="um-email" id="um-email">—</div>
-  </div>
-  <button class="um-item" onclick="showSection('perfil');closeMenus()">👤 Mi perfil</button>
-  <button class="um-item" onclick="showSection('ordenes');closeMenus()">📦 Mis pedidos</button>
-  <button class="um-item" onclick="showSection('mensajes');closeMenus()">💬 Mensajes</button>
-  <div style="height:1px;background:var(--border)"></div>
-  <button class="um-item danger" onclick="doSignOut()">🚪 Cerrar sesión</button>
-</div>
-
-<!-- ─── NOTIF PANEL ──────────────────────────────────────────────── -->
-<div id="notif-panel">
-  <div class="np-header">
-    <span class="np-title">NOTIFICACIONES</span>
-    <button class="np-clear" onclick="markAllNotifRead()">Marcar todo leído</button>
-  </div>
-  <div class="np-list" id="notif-list"><div class="np-empty">Sin notificaciones</div></div>
-</div>
-
-<!-- ─── CART OVERLAY + DRAWER ────────────────────────────────────── -->
-<div id="cart-overlay" onclick="closeCart()"></div>
-<aside id="cart-drawer">
-  <div class="cart-header">
-    <span class="cart-title">CARRITO</span>
-    <button class="cart-close" onclick="closeCart()">×</button>
-  </div>
-  <div class="cart-items" id="cart-items"></div>
-  <div class="cart-footer">
-    <div class="cart-summary" id="cart-summary"></div>
-    <button class="btn btn-gold btn-full btn-lg" onclick="goToCheckout()" id="btn-checkout" disabled>
-      Proceder al pago →
-    </button>
-    <button class="btn btn-ghost btn-full" onclick="closeCart();showSection('catalogo')" style="margin-top:8px">
-      Continuar comprando
-    </button>
-  </div>
-</aside>
-
-<!-- ─── APP ─────────────────────────────────────────────────────── -->
-<main id="app">
-
-  <!-- ── HOME / HERO ── -->
-  <div class="section active" id="s-home">
-    <div id="hero">
-      <div class="hero-bg"></div>
-      <div class="hero-grain"></div>
-      <div class="hero-content">
-        <div class="hero-label">Nueva colección 2025</div>
-        <h1 class="hero-h1">
-          PASOS<br>
-          <span class="italic">que definen</span>
-          ESTILOS
-        </h1>
-        <p class="hero-sub">Calzado de calidad para cada momento. Deportivo, colegial, casual y más. Envío a todo Colombia o recoge en tienda.</p>
-        <div class="hero-actions">
-          <button class="btn btn-gold btn-lg" onclick="showSection('catalogo')">Explorar catálogo</button>
-          <button class="btn btn-outline btn-lg" onclick="showSection('nosotros')">Sobre RICWER</button>
-        </div>
+  <!-- ─── TOPBAR ──────────────────────────────────────────────────── -->
+  <header id="topbar">
+    <div class="tb-left">
+      <button class="menu-toggle" id="menu-toggle">☰</button>
+      <div class="tb-logo" onclick="showSection('home')">RIC<span>W</span>ER</div>
+      <nav class="tb-nav">
+        <button class="tb-nav-btn active" onclick="showSection('home')" data-sec="home">Inicio</button>
+        <button class="tb-nav-btn" onclick="showSection('catalogo')" data-sec="catalogo">Catálogo</button>
+        <button class="tb-nav-btn" onclick="showSection('mensajes')" data-sec="mensajes">Soporte</button>
+        <button class="tb-nav-btn" onclick="showSection('nosotros')" data-sec="nosotros">Nosotros</button>
+      </nav>
+    </div>
+    <div class="tb-right">
+      <div class="tb-search-wrap">
+        <span class="tb-search-icon">🔍</span>
+        <input class="tb-search" id="tb-search" type="search" placeholder="Buscar producto..."
+          oninput="onSearchInput()" />
       </div>
-      <div class="hero-visual">👟</div>
+      <button class="icon-btn" id="notif-btn" onclick="toggleNotifPanel()">
+        🔔
+        <span class="notif-dot" id="notif-dot" style="display:none"></span>
+      </button>
+      <button class="icon-btn" onclick="openCart()">
+        🛒
+        <span class="cart-count" id="cart-count" style="display:none">0</span>
+      </button>
+      <button class="tb-avatar" id="tb-avatar" onclick="toggleUserMenu()">?</button>
     </div>
+  </header>
 
-    <!-- Categorías destacadas -->
-    <section style="padding:60px 32px">
-      <div style="text-align:center;margin-bottom:40px">
-        <p style="font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Explora por categoría</p>
-        <h2 style="font-family:var(--font-display);font-size:36px;letter-spacing:2px">NUESTRAS LÍNEAS</h2>
-      </div>
-      <div id="home-categorias" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px;max-width:900px;margin:0 auto"></div>
-    </section>
+  <!-- ─── MOBILE NAV ──────────────────────────────────────────────── -->
+  <nav id="mobile-nav">
+    <button class="mob-nav-item active" onclick="showSection('home');closeMobileNav()" data-sec="home">🏠
+      Inicio</button>
+    <button class="mob-nav-item" onclick="showSection('catalogo');closeMobileNav()" data-sec="catalogo">👟
+      Catálogo</button>
+    <button class="mob-nav-item" onclick="showSection('perfil');closeMobileNav()" data-sec="perfil">👤 Mi
+      cuenta</button>
+    <button class="mob-nav-item" onclick="showSection('ordenes');closeMobileNav()" data-sec="ordenes">📦 Mis
+      pedidos</button>
+    <button class="mob-nav-item" onclick="showSection('mensajes');closeMobileNav()" data-sec="mensajes">💬
+      Soporte</button>
+    <button class="mob-nav-item" onclick="showSection('nosotros');closeMobileNav()" data-sec="nosotros">ℹ️
+      Nosotros</button>
+    <div class="divider" style="margin:8px 24px"></div>
+    <button class="mob-nav-item" onclick="doSignOut()">🚪 Cerrar sesión</button>
+  </nav>
+  <div id="mobile-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:279;"
+    onclick="closeMobileNav()"></div>
 
-    <!-- Destacados -->
-    <section style="padding:0 0 80px">
-      <div style="padding:0 32px;margin-bottom:32px;display:flex;justify-content:space-between;align-items:flex-end">
-        <div>
-          <p style="font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:6px">Lo más vendido</p>
-          <h2 style="font-family:var(--font-display);font-size:36px;letter-spacing:2px">DESTACADOS</h2>
-        </div>
-        <button class="btn btn-outline btn-sm" onclick="showSection('catalogo')">Ver todo →</button>
-      </div>
-      <div id="home-destacados" class="products-grid" style="background:none;gap:16px;padding:0 32px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))"></div>
-    </section>
-    <!-- Novedades -->
-    <section id="section-novedades" style="padding:0 0 80px">
-      <div style="padding:0 32px;margin-bottom:32px;display:flex;justify-content:space-between;align-items:flex-end">
-        <div>
-          <p style="font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:6px">Recién llegado</p>
-          <h2 style="font-family:var(--font-display);font-size:36px;letter-spacing:2px">NOVEDADES</h2>
-        </div>
-        <button class="btn btn-outline btn-sm" onclick="showSection('catalogo')">Ver todo →</button>
-      </div>
-      <div id="home-novedades" class="products-grid" style="background:none;gap:16px;padding:0 32px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))"></div>
-    </section>
+  <!-- ─── USER MENU ────────────────────────────────────────────────── -->
+  <div id="user-menu">
+    <div class="um-header">
+      <div class="um-name" id="um-name">—</div>
+      <div class="um-email" id="um-email">—</div>
+    </div>
+    <button class="um-item" onclick="showSection('perfil');closeMenus()">👤 Mi perfil</button>
+    <button class="um-item" onclick="showSection('ordenes');closeMenus()">📦 Mis pedidos</button>
+    <button class="um-item" onclick="showSection('mensajes');closeMenus()">💬 Mensajes</button>
+    <div style="height:1px;background:var(--border)"></div>
+    <button class="um-item danger" onclick="doSignOut()">🚪 Cerrar sesión</button>
   </div>
 
-  <!-- ── CATÁLOGO ── -->
-  <div class="section" id="s-catalogo">
-    <div class="cat-header">
-      <div class="cat-title">
-        CATÁLOGO
-        <small id="cat-count">Cargando...</small>
-      </div>
+  <!-- ─── NOTIF PANEL ──────────────────────────────────────────────── -->
+  <div id="notif-panel">
+    <div class="np-header">
+      <span class="np-title">NOTIFICACIONES</span>
+      <button class="np-clear" onclick="markAllNotifRead()">Marcar todo leído</button>
     </div>
-    <div class="filters-bar">
-      <div class="filter-chips" id="cat-chips"></div>
-      <div class="sort-wrap">
-        <select class="filter-select" id="sort-select" onchange="renderCatalogo()">
-          <option value="">Ordenar por</option>
-          <option value="precio_asc">Precio: menor a mayor</option>
-          <option value="precio_desc">Precio: mayor a menor</option>
-          <option value="nuevo">Más nuevos</option>
-          <option value="nombre">Nombre A-Z</option>
-        </select>
-        <select class="filter-select" id="genero-select" onchange="renderCatalogo()">
-          <option value="">Todos los géneros</option>
-          <option value="Hombre">Hombre</option>
-          <option value="Mujer">Mujer</option>
-          <option value="Niño">Niño</option>
-          <option value="Niña">Niña</option>
-          <option value="Unisex">Unisex</option>
-        </select>
-      </div>
-    </div>
-    <div class="products-grid" id="cat-grid"></div>
-  </div>
-
-  <!-- ── DETALLE PRODUCTO ── -->
-  <div class="section" id="s-producto">
-    <div class="prod-back">
-      <button class="btn btn-ghost" onclick="historyBack()">← Volver</button>
-    </div>
-    <div class="prod-layout" id="prod-detail-content"></div>
-  </div>
-
-  <!-- ── CHECKOUT ── -->
-  <div class="section" id="s-checkout">
-    <div style="margin-bottom:28px">
-      <button class="btn btn-ghost" onclick="closeCart();showSection('home')">← Seguir comprando</button>
-    </div>
-    <h1 style="font-family:var(--font-display);font-size:40px;letter-spacing:3px;margin-bottom:32px">CHECKOUT</h1>
-    <div class="checkout-layout">
-      <div id="checkout-steps"></div>
-      <div id="checkout-summary"></div>
+    <div class="np-list" id="notif-list">
+      <div class="np-empty">Sin notificaciones</div>
     </div>
   </div>
 
-  <!-- ── PERFIL ── -->
-  <div class="section" id="s-perfil">
-    <div id="perfil-content"></div>
-  </div>
+  <!-- ─── CART OVERLAY + DRAWER ────────────────────────────────────── -->
+  <div id="cart-overlay" onclick="closeCart()"></div>
+  <aside id="cart-drawer">
+    <div class="cart-header">
+      <span class="cart-title">CARRITO</span>
+      <button class="cart-close" onclick="closeCart()">×</button>
+    </div>
+    <div class="cart-items" id="cart-items"></div>
+    <div class="cart-footer">
+      <div class="cart-summary" id="cart-summary"></div>
+      <button class="btn btn-gold btn-full btn-lg" onclick="goToCheckout()" id="btn-checkout" disabled>
+        Proceder al pago →
+      </button>
+      <button class="btn btn-ghost btn-full" onclick="closeCart();showSection('catalogo')" style="margin-top:8px">
+        Continuar comprando
+      </button>
+    </div>
+  </aside>
 
-  <!-- ── MIS ÓRDENES ── -->
-  <div class="section" id="s-ordenes">
-    <div style="margin-bottom:28px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:0 2px">
-      <h1 style="font-family:var(--font-display);font-size:40px;letter-spacing:3px">MIS PEDIDOS</h1>
-      <button class="btn btn-outline btn-sm" onclick="showSection('mensajes')">¿Problema con un pedido? →</button>
-    </div>
-    <div id="ordenes-list"></div>
-  </div>
+  <!-- ─── APP ─────────────────────────────────────────────────────── -->
+  <main id="app">
 
-  <!-- ── MENSAJES / SOPORTE ── -->
-  <div class="section" id="s-mensajes">
-    <div style="margin-bottom:28px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:0 2px">
-      <h1 style="font-family:var(--font-display);font-size:40px;letter-spacing:3px">SOPORTE</h1>
-      <button class="btn btn-gold btn-sm" onclick="openNuevoMensaje()">+ Nuevo mensaje</button>
-    </div>
-    <div class="msg-layout">
-      <div class="msg-list">
-        <div class="msg-list-header">MENSAJES</div>
-        <div id="msg-list-items"><div class="np-empty">Sin mensajes aún</div></div>
-      </div>
-      <div class="msg-thread" id="msg-thread">
-        <div class="msg-thread-empty">
-          <div style="font-size:48px;opacity:0.2"></div>
-          <p>Selecciona un mensaje para ver el hilo</p>
-          <button class="btn btn-gold btn-sm" style="margin-top:8px" onclick="openNuevoMensaje()">Enviar mensaje</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── NOSOTROS ── -->
-  <div class="section" id="s-nosotros">
-    <div style="max-width:800px;margin:0 auto;padding:60px 32px 80px">
-      <p style="font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:16px">Bogotá, Colombia</p>
-      <h1 style="font-family:var(--font-display);font-size:clamp(48px,6vw,80px);letter-spacing:2px;line-height:0.95;margin-bottom:32px">SOBRE<br>RICWER</h1>
-      <div style="height:2px;width:60px;background:var(--gold);margin-bottom:40px"></div>
-      <p style="font-size:16px;color:var(--text-muted);line-height:1.9;margin-bottom:24px">
-        RICWER nació en Bogotá con una misión simple: llevar calzado de calidad a cada familia colombiana. Desde nuestros inicios, hemos trabajado con los mejores fabricantes para ofrecerte zapatos que combinan estilo, durabilidad y comodidad.
-      </p>
-      <p style="font-size:16px;color:var(--text-muted);line-height:1.9;margin-bottom:48px">
-        Contamos con una amplia línea de productos: deportivos, colegiales, casuales, de trabajo y más. Atendemos tanto en tienda física como a través de nuestra plataforma en línea con envíos a todo el país.
-      </p>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:24px;margin-bottom:56px">
-        <div style="text-align:center;padding:28px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg)">
-          <div style="font-size:36px;margin-bottom:8px">👟</div>
-          <div style="font-family:var(--font-display);font-size:32px;letter-spacing:2px;color:var(--gold)">100+</div>
-          <div style="font-size:12px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase">Referencias</div>
-        </div>
-        <div style="text-align:center;padding:28px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg)">
-          <div style="font-size:36px;margin-bottom:8px">😊</div>
-          <div style="font-family:var(--font-display);font-size:32px;letter-spacing:2px;color:var(--gold)">10K+</div>
-          <div style="font-size:12px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase">Clientes</div>
-        </div>
-        <div style="text-align:center;padding:28px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg)">
-          <div style="font-size:36px;margin-bottom:8px">🚚</div>
-          <div style="font-family:var(--font-display);font-size:32px;letter-spacing:2px;color:var(--gold)">5</div>
-          <div style="font-size:12px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase">Ciudades</div>
-        </div>
-        <div style="text-align:center;padding:28px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg)">
-          <div style="font-size:36px;margin-bottom:8px">⭐</div>
-          <div style="font-family:var(--font-display);font-size:32px;letter-spacing:2px;color:var(--gold)">4.8</div>
-          <div style="font-size:12px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase">Calificación</div>
-        </div>
-      </div>
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px">
-        <h3 style="font-family:var(--font-display);font-size:24px;letter-spacing:2px;margin-bottom:20px;color:var(--gold)">CONTÁCTANOS</h3>
-        <div style="display:flex;flex-direction:column;gap:12px;font-size:14px;color:var(--text-muted)">
-          <div>📍 Bogotá, Colombia</div>
-          <div>📱 WhatsApp: <a href="https://wa.me/573000000000" style="color:var(--gold)">300 000 0000</a></div>
-          <div>✉️ Email: <a href="mailto:ricwercalzado@gmail.com" style="color:var(--gold)">ricwercalzado@gmail.com</a></div>
-          <div>🕐 Horario: Lunes a Sábado 8am – 7pm</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</main>
-
-<!-- ─── FOOTER ───────────────────────────────────────────────────── -->
-<footer id="footer">
-  <div class="footer-grid">
-    <div>
-      <div class="footer-brand-logo">RIC<span>W</span>ER</div>
-      <p class="footer-desc">Calzado de calidad para cada momento de tu vida. Bogotá, Colombia.</p>
-    </div>
-    <div class="footer-col">
-      <h5>Tienda</h5>
-      <div class="footer-links">
-        <button class="footer-link" onclick="showSection('catalogo')">Catálogo</button>
-        <button class="footer-link" onclick="filterCategoria('deportivo');showSection('catalogo')">Deportivo</button>
-        <button class="footer-link" onclick="filterCategoria('colegial');showSection('catalogo')">Colegial</button>
-        <button class="footer-link" onclick="filterCategoria('ninos');showSection('catalogo')">Niños</button>
-      </div>
-    </div>
-    <div class="footer-col">
-      <h5>Cuenta</h5>
-      <div class="footer-links">
-        <button class="footer-link" onclick="showSection('perfil')">Mi perfil</button>
-        <button class="footer-link" onclick="showSection('ordenes')">Mis pedidos</button>
-        <button class="footer-link" onclick="openCart()">Carrito</button>
-      </div>
-    </div>
-    <div class="footer-col">
-      <h5>Soporte</h5>
-      <div class="footer-links">
-        <button class="footer-link" onclick="openNuevoMensaje()">Contactar</button>
-        <button class="footer-link" onclick="showSection('nosotros')">Sobre nosotros</button>
-        <button class="footer-link" onclick="openModal('modal-terminos')">Términos</button>
-        <button class="footer-link" onclick="openModal('modal-politica')">Privacidad</button>
-      </div>
-    </div>
-  </div>
-  <div class="footer-bottom">
-    <span class="footer-copy">© 2026 RICWER. TODOS LOS DERECHOS RESERVADOS.</span>
-    <span class="footer-copy">🇨🇴 HECHO EN COLOMBIA</span>
-  </div>
-</footer>
-
-<!-- ─── MODAL NUEVO MENSAJE ──────────────────────────────────────── -->
-<div class="modal-overlay" id="modal-mensaje">
-  <div class="modal-box">
-    <div class="modal-head">
-      <h3>NUEVO MENSAJE</h3>
-      <button class="modal-close" onclick="closeModal('modal-mensaje')">×</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-grid full">
-        <div class="form-group">
-          <label class="form-label">Tipo</label>
-          <select class="form-select" id="msg-tipo">
-            <option value="soporte">🔧 Soporte técnico</option>
-            <option value="reclamo">❗ Reclamo / Devolución</option>
-            <option value="sugerencia">💡 Sugerencia</option>
-            <option value="calificacion">⭐ Calificación</option>
-            <option value="otro">📝 Otro</option>
-          </select>
-        </div>
-        <div class="form-group" id="msg-orden-wrap">
-          <label class="form-label">Relacionar con pedido (opcional)</label>
-          <select class="form-select" id="msg-orden-id">
-            <option value="">— Sin pedido relacionado —</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Asunto *</label>
-          <input type="text" class="form-input" id="msg-asunto" placeholder="¿En qué te podemos ayudar?" maxlength="100" />
-        </div>
-        <div class="form-group" id="msg-cal-wrap" style="display:none">
-          <label class="form-label">Calificación</label>
-          <div id="star-rating" style="display:flex;gap:8px;font-size:28px;cursor:pointer">
-            <span data-val="1">☆</span><span data-val="2">☆</span><span data-val="3">☆</span><span data-val="4">☆</span><span data-val="5">☆</span>
+    <!-- ── HOME / HERO ── -->
+    <div class="section active" id="s-home">
+      <div id="hero">
+        <div class="hero-bg"></div>
+        <div class="hero-grain"></div>
+        <div class="hero-content">
+          <div class="hero-label">Nueva colección 2025</div>
+          <h1 class="hero-h1">
+            PASOS<br>
+            <span class="italic">que definen</span>
+            ESTILOS
+          </h1>
+          <p class="hero-sub">Calzado de calidad para cada momento. Deportivo, colegial, casual y más. Envío a todo
+            Colombia o recoge en tienda.</p>
+          <div class="hero-actions">
+            <button class="btn btn-gold btn-lg" onclick="showSection('catalogo')">Explorar catálogo</button>
+            <button class="btn btn-outline btn-lg" onclick="showSection('nosotros')">Sobre RICWER</button>
           </div>
-          <input type="hidden" id="msg-calificacion" value="" />
         </div>
-        <div class="form-group">
-          <label class="form-label">Mensaje *</label>
-          <textarea class="form-textarea" id="msg-cuerpo" placeholder="Describe tu solicitud con detalle..." style="min-height:120px"></textarea>
+        <div class="hero-visual">👟</div>
+      </div>
+
+      <!-- Categorías destacadas -->
+      <section style="padding:60px 32px">
+        <div style="text-align:center;margin-bottom:40px">
+          <p style="font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:8px">
+            Explora por categoría</p>
+          <h2 style="font-family:var(--font-display);font-size:36px;letter-spacing:2px">NUESTRAS LÍNEAS</h2>
+        </div>
+        <div id="home-categorias"
+          style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px;max-width:900px;margin:0 auto">
+        </div>
+      </section>
+
+      <!-- Destacados -->
+      <section style="padding:0 0 80px">
+        <div style="padding:0 32px;margin-bottom:32px;display:flex;justify-content:space-between;align-items:flex-end">
+          <div>
+            <p style="font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:6px">Lo
+              más vendido</p>
+            <h2 style="font-family:var(--font-display);font-size:36px;letter-spacing:2px">DESTACADOS</h2>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="showSection('catalogo')">Ver todo →</button>
+        </div>
+        <div id="home-destacados" class="products-grid"
+          style="background:none;gap:16px;padding:0 32px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
+        </div>
+      </section>
+      <!-- Novedades -->
+      <section id="section-novedades" style="padding:0 0 80px">
+        <div style="padding:0 32px;margin-bottom:32px;display:flex;justify-content:space-between;align-items:flex-end">
+          <div>
+            <p style="font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:6px">
+              Recién llegado</p>
+            <h2 style="font-family:var(--font-display);font-size:36px;letter-spacing:2px">NOVEDADES</h2>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="showSection('catalogo')">Ver todo →</button>
+        </div>
+        <div id="home-novedades" class="products-grid"
+          style="background:none;gap:16px;padding:0 32px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
+        </div>
+      </section>
+    </div>
+
+    <!-- ── CATÁLOGO ── -->
+    <div class="section" id="s-catalogo">
+      <div class="cat-header">
+        <div class="cat-title">
+          CATÁLOGO
+          <small id="cat-count">Cargando...</small>
+        </div>
+      </div>
+      <div class="filters-bar">
+        <div id="cat-chips" class="cat-chips-row"></div>
+        <div id="talla-chips" class="cat-chips-row talla-chips-row"
+          style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+
+        </div>
+
+        <div id="cat-grid" class="products-grid"></div>
+        <div class="sort-wrap">
+          <select class="filter-select" id="sort-select" onchange="renderCatalogo()">
+            <option value="">Ordenar por</option>
+            <option value="precio_asc">Precio: menor a mayor</option>
+            <option value="precio_desc">Precio: mayor a menor</option>
+            <option value="nuevo">Más nuevos</option>
+            <option value="nombre">Nombre A-Z</option>
+          </select>
+          <select class="filter-select" id="genero-select" onchange="renderCatalogo()">
+            <option value="">Todos los géneros</option>
+            <option value="Hombre">Hombre</option>
+            <option value="Mujer">Mujer</option>
+            <option value="Niño">Niño</option>
+            <option value="Niña">Niña</option>
+            <option value="Unisex">Unisex</option>
+          </select>
+        </div>
+      </div>
+      <div class="products-grid" id="cat-grid"></div>
+    </div>
+
+    <!-- ── DETALLE PRODUCTO ── -->
+    <div class="section" id="s-producto">
+      <div class="prod-back">
+        <button class="btn btn-ghost" onclick="historyBack()">← Volver</button>
+      </div>
+      <div class="prod-layout" id="prod-detail-content"></div>
+    </div>
+
+    <!-- ── CHECKOUT ── -->
+    <div class="section" id="s-checkout">
+      <div style="margin-bottom:28px">
+        <button class="btn btn-ghost" onclick="closeCart();showSection('home')">← Seguir comprando</button>
+      </div>
+      <h1 style="font-family:var(--font-display);font-size:40px;letter-spacing:3px;margin-bottom:32px">CHECKOUT</h1>
+      <div class="checkout-layout">
+        <div id="checkout-steps"></div>
+        <div id="checkout-summary"></div>
+      </div>
+    </div>
+
+    <!-- ── PERFIL ── -->
+    <div class="section" id="s-perfil">
+      <div id="perfil-content"></div>
+    </div>
+
+    <!-- ── MIS ÓRDENES ── -->
+    <div class="section" id="s-ordenes">
+      <div
+        style="margin-bottom:28px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:0 2px">
+        <h1 style="font-family:var(--font-display);font-size:40px;letter-spacing:3px">MIS PEDIDOS</h1>
+        <button class="btn btn-outline btn-sm" onclick="showSection('mensajes')">¿Problema con un pedido? →</button>
+      </div>
+      <div id="ordenes-list"></div>
+    </div>
+
+    <!-- ── MENSAJES / SOPORTE ── -->
+    <div class="section" id="s-mensajes">
+      <div
+        style="margin-bottom:28px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:0 2px">
+        <h1 style="font-family:var(--font-display);font-size:40px;letter-spacing:3px">SOPORTE</h1>
+        <button class="btn btn-gold btn-sm" onclick="openNuevoMensaje()">+ Nuevo mensaje</button>
+      </div>
+      <div class="msg-layout">
+        <div class="msg-list">
+          <div class="msg-list-header">MENSAJES</div>
+          <div id="msg-list-items">
+            <div class="np-empty">Sin mensajes aún</div>
+          </div>
+        </div>
+        <div class="msg-thread" id="msg-thread">
+          <div class="msg-thread-empty">
+            <div style="font-size:48px;opacity:0.2"></div>
+            <p>Selecciona un mensaje para ver el hilo</p>
+            <button class="btn btn-gold btn-sm" style="margin-top:8px" onclick="openNuevoMensaje()">Enviar
+              mensaje</button>
+          </div>
         </div>
       </div>
     </div>
-    <div class="modal-foot">
-      <button class="btn btn-outline btn-sm" onclick="closeModal('modal-mensaje')">Cancelar</button>
-      <button class="btn btn-gold btn-sm" onclick="enviarMensaje()">Enviar mensaje</button>
+
+    <!-- ── NOSOTROS ── -->
+    <div class="section" id="s-nosotros">
+      <div style="max-width:800px;margin:0 auto;padding:60px 32px 80px">
+        <p style="font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:16px">
+          Bogotá, Colombia</p>
+        <h1
+          style="font-family:var(--font-display);font-size:clamp(48px,6vw,80px);letter-spacing:2px;line-height:0.95;margin-bottom:32px">
+          SOBRE<br>RICWER</h1>
+        <div style="height:2px;width:60px;background:var(--gold);margin-bottom:40px"></div>
+        <p style="font-size:16px;color:var(--text-muted);line-height:1.9;margin-bottom:24px">
+          RICWER nació en Bogotá con una misión simple: llevar calzado de calidad a cada familia colombiana. Desde
+          nuestros inicios, hemos trabajado con los mejores fabricantes para ofrecerte zapatos que combinan estilo,
+          durabilidad y comodidad.
+        </p>
+        <p style="font-size:16px;color:var(--text-muted);line-height:1.9;margin-bottom:48px">
+          Contamos con una amplia línea de productos: deportivos, colegiales, casuales, de trabajo y más. Atendemos
+          tanto en tienda física como a través de nuestra plataforma en línea con envíos a todo el país.
+        </p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:24px;margin-bottom:56px">
+          <div
+            style="text-align:center;padding:28px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg)">
+            <div style="font-size:36px;margin-bottom:8px">👟</div>
+            <div style="font-family:var(--font-display);font-size:32px;letter-spacing:2px;color:var(--gold)">100+</div>
+            <div style="font-size:12px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase">Referencias
+            </div>
+          </div>
+          <div
+            style="text-align:center;padding:28px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg)">
+            <div style="font-size:36px;margin-bottom:8px">😊</div>
+            <div style="font-family:var(--font-display);font-size:32px;letter-spacing:2px;color:var(--gold)">10K+</div>
+            <div style="font-size:12px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase">Clientes
+            </div>
+          </div>
+          <div
+            style="text-align:center;padding:28px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg)">
+            <div style="font-size:36px;margin-bottom:8px">🚚</div>
+            <div style="font-family:var(--font-display);font-size:32px;letter-spacing:2px;color:var(--gold)">5</div>
+            <div style="font-size:12px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase">Ciudades
+            </div>
+          </div>
+          <div
+            style="text-align:center;padding:28px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg)">
+            <div style="font-size:36px;margin-bottom:8px">⭐</div>
+            <div style="font-family:var(--font-display);font-size:32px;letter-spacing:2px;color:var(--gold)">4.8</div>
+            <div style="font-size:12px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase">Calificación
+            </div>
+          </div>
+        </div>
+        <div
+          style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px">
+          <h3
+            style="font-family:var(--font-display);font-size:24px;letter-spacing:2px;margin-bottom:20px;color:var(--gold)">
+            CONTÁCTANOS</h3>
+          <div style="display:flex;flex-direction:column;gap:12px;font-size:14px;color:var(--text-muted)">
+            <div>📍 Bogotá, Colombia</div>
+            <div>📱 WhatsApp: <a href="https://wa.me/573000000000" style="color:var(--gold)">300 000 0000</a></div>
+            <div>✉️ Email: <a href="mailto:ricwercalzado@gmail.com"
+                style="color:var(--gold)">ricwercalzado@gmail.com</a></div>
+            <div>🕐 Horario: Lunes a Sábado 8am – 7pm</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ─── FOOTER ───────────────────────────────────────────────────── -->
+  <footer id="footer">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand-logo">RIC<span>W</span>ER</div>
+        <p class="footer-desc">Calzado de calidad para cada momento de tu vida. Bogotá, Colombia.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Tienda</h5>
+        <div class="footer-links">
+          <button class="footer-link" onclick="showSection('catalogo')">Catálogo</button>
+          <button class="footer-link" onclick="filterCategoria('deportivo');showSection('catalogo')">Deportivo</button>
+          <button class="footer-link" onclick="filterCategoria('colegial');showSection('catalogo')">Colegial</button>
+          <button class="footer-link" onclick="filterCategoria('ninos');showSection('catalogo')">Niños</button>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h5>Cuenta</h5>
+        <div class="footer-links">
+          <button class="footer-link" onclick="showSection('perfil')">Mi perfil</button>
+          <button class="footer-link" onclick="showSection('ordenes')">Mis pedidos</button>
+          <button class="footer-link" onclick="openCart()">Carrito</button>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h5>Soporte</h5>
+        <div class="footer-links">
+          <button class="footer-link" onclick="openNuevoMensaje()">Contactar</button>
+          <button class="footer-link" onclick="showSection('nosotros')">Sobre nosotros</button>
+          <button class="footer-link" onclick="openModal('modal-terminos')">Términos</button>
+          <button class="footer-link" onclick="openModal('modal-politica')">Privacidad</button>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span class="footer-copy">© 2026 RICWER. TODOS LOS DERECHOS RESERVADOS.</span>
+      <span class="footer-copy">🇨🇴 HECHO EN COLOMBIA</span>
+    </div>
+  </footer>
+
+  <!-- ─── MODAL NUEVO MENSAJE ──────────────────────────────────────── -->
+  <div class="modal-overlay" id="modal-mensaje">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3>NUEVO MENSAJE</h3>
+        <button class="modal-close" onclick="closeModal('modal-mensaje')">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid full">
+          <div class="form-group">
+            <label class="form-label">Tipo</label>
+            <select class="form-select" id="msg-tipo">
+              <option value="soporte">🔧 Soporte técnico</option>
+              <option value="reclamo">❗ Reclamo / Devolución</option>
+              <option value="sugerencia">💡 Sugerencia</option>
+              <option value="calificacion">⭐ Calificación</option>
+              <option value="otro">📝 Otro</option>
+            </select>
+          </div>
+          <div class="form-group" id="msg-orden-wrap">
+            <label class="form-label">Relacionar con pedido (opcional)</label>
+            <select class="form-select" id="msg-orden-id">
+              <option value="">— Sin pedido relacionado —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Asunto *</label>
+            <input type="text" class="form-input" id="msg-asunto" placeholder="¿En qué te podemos ayudar?"
+              maxlength="100" />
+          </div>
+          <div class="form-group" id="msg-cal-wrap" style="display:none">
+            <label class="form-label">Calificación</label>
+            <div id="star-rating" style="display:flex;gap:8px;font-size:28px;cursor:pointer">
+              <span data-val="1">☆</span><span data-val="2">☆</span><span data-val="3">☆</span><span
+                data-val="4">☆</span><span data-val="5">☆</span>
+            </div>
+            <input type="hidden" id="msg-calificacion" value="" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mensaje *</label>
+            <textarea class="form-textarea" id="msg-cuerpo" placeholder="Describe tu solicitud con detalle..."
+              style="min-height:120px"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-mensaje')">Cancelar</button>
+        <button class="btn btn-gold btn-sm" onclick="enviarMensaje()">Enviar mensaje</button>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- ─── MODAL TÉRMINOS ───────────────────────────────────────────── -->
-<div class="modal-overlay" id="modal-terminos">
-  <div class="modal-box">
-    <div class="modal-head"><h3>TÉRMINOS Y CONDICIONES</h3><button class="modal-close" onclick="closeModal('modal-terminos')">×</button></div>
-    <div class="modal-body" style="font-size:13px;line-height:1.8;color:var(--text-muted)">
-      <h4 style="color:var(--white);margin-bottom:8px">1. Uso de la plataforma</h4>
-      <p>Al usar RICWER aceptas estos términos. Debes tener cuenta activa para realizar compras.</p>
-      <h4 style="color:var(--white);margin:16px 0 8px">2. Precios y pagos</h4>
-      <p>Precios en COP. El pago confirma tu pedido. Los precios pueden cambiar sin previo aviso, pero tus pedidos confirmados mantienen el precio acordado.</p>
-      <h4 style="color:var(--white);margin:16px 0 8px">3. Entregas</h4>
-      <p>Domicilio: 2-5 días hábiles. Recogida en tienda: 1-2 días hábiles. Horario de entrega según transportadora.</p>
-      <h4 style="color:var(--white);margin:16px 0 8px">4. Devoluciones</h4>
-      <p>7 días calendario para devoluciones. Producto sin uso, con empaque original. Gastos de envío a cargo del cliente.</p>
-      <h4 style="color:var(--white);margin:16px 0 8px">5. Garantía</h4>
-      <p>30 días contra defectos de fabricación. No cubre desgaste por uso normal.</p>
+  <!-- ─── MODAL TÉRMINOS ───────────────────────────────────────────── -->
+  <div class="modal-overlay" id="modal-terminos">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3>TÉRMINOS Y CONDICIONES</h3><button class="modal-close" onclick="closeModal('modal-terminos')">×</button>
+      </div>
+      <div class="modal-body" style="font-size:13px;line-height:1.8;color:var(--text-muted)">
+        <h4 style="color:var(--white);margin-bottom:8px">1. Uso de la plataforma</h4>
+        <p>Al usar RICWER aceptas estos términos. Debes tener cuenta activa para realizar compras.</p>
+        <h4 style="color:var(--white);margin:16px 0 8px">2. Precios y pagos</h4>
+        <p>Precios en COP. El pago confirma tu pedido. Los precios pueden cambiar sin previo aviso, pero tus pedidos
+          confirmados mantienen el precio acordado.</p>
+        <h4 style="color:var(--white);margin:16px 0 8px">3. Entregas</h4>
+        <p>Domicilio: 2-5 días hábiles. Recogida en tienda: 1-2 días hábiles. Horario de entrega según transportadora.
+        </p>
+        <h4 style="color:var(--white);margin:16px 0 8px">4. Devoluciones</h4>
+        <p>7 días calendario para devoluciones. Producto sin uso, con empaque original. Gastos de envío a cargo del
+          cliente.</p>
+        <h4 style="color:var(--white);margin:16px 0 8px">5. Garantía</h4>
+        <p>30 días contra defectos de fabricación. No cubre desgaste por uso normal.</p>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- ─── MODAL PRIVACIDAD ─────────────────────────────────────────── -->
-<div class="modal-overlay" id="modal-politica">
-  <div class="modal-box">
-    <div class="modal-head"><h3>POLÍTICA DE PRIVACIDAD</h3><button class="modal-close" onclick="closeModal('modal-politica')">×</button></div>
-    <div class="modal-body" style="font-size:13px;line-height:1.8;color:var(--text-muted)">
-      <h4 style="color:var(--white);margin-bottom:8px">Datos que recopilamos</h4>
-      <p>Nombre, correo, teléfono, dirección de envío e historial de compras.</p>
-      <h4 style="color:var(--white);margin:16px 0 8px">Uso de datos</h4>
-      <p>Solo para procesar pedidos, confirmaciones y mejorar el servicio.</p>
-      <h4 style="color:var(--white);margin:16px 0 8px">Seguridad</h4>
-      <p>Usamos Supabase con cifrado SSL. Contraseñas con hash seguro, nunca en texto plano.</p>
-      <h4 style="color:var(--white);margin:16px 0 8px">Tus derechos</h4>
-      <p>Puedes acceder, corregir o eliminar tus datos escribiéndonos a ricwercalzado@gmail.com.</p>
+  <!-- ─── MODAL PRIVACIDAD ─────────────────────────────────────────── -->
+  <div class="modal-overlay" id="modal-politica">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3>POLÍTICA DE PRIVACIDAD</h3><button class="modal-close" onclick="closeModal('modal-politica')">×</button>
+      </div>
+      <div class="modal-body" style="font-size:13px;line-height:1.8;color:var(--text-muted)">
+        <h4 style="color:var(--white);margin-bottom:8px">Datos que recopilamos</h4>
+        <p>Nombre, correo, teléfono, dirección de envío e historial de compras.</p>
+        <h4 style="color:var(--white);margin:16px 0 8px">Uso de datos</h4>
+        <p>Solo para procesar pedidos, confirmaciones y mejorar el servicio.</p>
+        <h4 style="color:var(--white);margin:16px 0 8px">Seguridad</h4>
+        <p>Usamos Supabase con cifrado SSL. Contraseñas con hash seguro, nunca en texto plano.</p>
+        <h4 style="color:var(--white);margin:16px 0 8px">Tus derechos</h4>
+        <p>Puedes acceder, corregir o eliminar tus datos escribiéndonos a ricwercalzado@gmail.com.</p>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- ─── TOAST ─────────────────────────────────────────────────────── -->
-<div id="toast-container"></div>
+  <!-- ─── TOAST ─────────────────────────────────────────────────────── -->
+  <div id="toast-container"></div>
 
-<!-- ─── SCRIPTS ──────────────────────────────────────────────────── -->
-<script src="https://checkout.wompi.co/widget.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./js/shared/supabase.js"></script>
-<script src="./js/client/catalogo.js"></script>
-<script src="./js/client/carrito.js"></script>
-<script src="./js/client/checkout.js"></script>
-<script src="./js/client/perfil.js"></script>
-<script src="./js/client/mensajes.js"></script>
-<script src="./js/client/ordenes.js"></script>
-<script src="./js/client/app.js"></script>
+  <!-- ─── SCRIPTS ──────────────────────────────────────────────────── -->
+  <script src="https://checkout.wompi.co/widget.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/shared/supabase.js"></script>
+  <script src="./js/client/catalogo.js"></script>
+  <script src="./js/client/carrito.js"></script>
+  <script src="./js/client/checkout.js"></script>
+  <script src="./js/client/perfil.js"></script>
+  <script src="./js/client/mensajes.js"></script>
+  <script src="./js/client/ordenes.js"></script>
+  <script src="./js/client/app.js"></script>
 </body>
+
 </html>

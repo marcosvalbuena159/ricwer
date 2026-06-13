@@ -138,8 +138,8 @@
             <div class="tbl-wrap">
               <table>
                 <thead><tr>
-                  <th style="width:44px"></th><th>Producto</th><th>Categoría</th><th>Género</th>
-                  <th>Costo</th><th>Precio</th><th>Stock</th><th>Estado</th><th>Acciones</th>
+                  <th>Producto</th><th>Categoría</th><th>Talla</th><th>Color</th>
+                  <th>Costo</th><th>Precio</th><th>Stock</th><th>Estado</th><th></th>
                 </tr></thead>
                 <tbody id="prod-tbody"></tbody>
               </table>
@@ -358,7 +358,6 @@
       <div class="field"><label>Género</label>
         <select id="p-genero"><option value="Unisex">Unisex</option><option value="Hombre">Hombre</option><option value="Mujer">Mujer</option><option value="Niño">Niño</option><option value="Niña">Niña</option></select>
       </div>
-      <div class="field field-full"><label>Descripción <span style="font-size:10px;color:var(--text-muted)">(visible en tienda)</span></label><textarea id="p-descripcion" placeholder="Describe el producto para los clientes..." rows="2"></textarea></div>
       <div class="field"><label>Precio de compra ($)</label><input id="p-costo" type="number" min="0" placeholder="0"></div>
       <div class="field"><label>Precio de venta ($)</label><input id="p-precio" type="number" min="0" placeholder="0"></div>
       <div class="field"><label>Precio con descuento ($) <span style="font-size:10px;color:var(--text-muted)">(opcional)</span></label><input id="p-precio-desc" type="number" min="0" placeholder="Dejar vacío si no aplica"></div>
@@ -375,13 +374,15 @@
           <input type="checkbox" id="p-nuevo" style="width:16px;height:16px;accent-color:var(--gold)"> 🆕 Novedad (home)
         </label>
       </div>
+      <div class="field field-full"><label>Descripción <span style="font-size:10px;color:var(--text-muted)">(visible en tienda)</span></label><textarea id="p-descripcion" placeholder="Descripción del producto para los clientes..." rows="2"></textarea></div>
       <div class="field field-full"><label>Notas internas</label><textarea id="p-notas" placeholder="Detalles adicionales (solo admin)..."></textarea></div>
     </div>
     <input type="hidden" id="p-id">
     <div class="modal-footer">
       <div class="btn-row">
-        <button class="btn btn-primary" onclick="saveProductoUI()">💾 Guardar producto</button>
-        <button id="p-btn-imagenes" class="btn btn-ghost" onclick="saveAndOpenImages()" style="display:none">🖼️ Guardar e ir a imágenes</button>
+        <button class="btn btn-primary" onclick="saveProductoUI()">💾 Guardar</button>
+        <button id="p-btn-imagenes" class="btn btn-ghost" style="display:none" onclick="saveAndOpenImages()">🖼️ Imágenes</button>
+        <button id="p-btn-variantes" class="btn btn-ghost" style="display:none" onclick="saveAndOpenVariantes()">📐 Tallas/Colores</button>
         <button class="btn btn-ghost" onclick="closeModal('modal-prod')">Cancelar</button>
       </div>
     </div>
@@ -400,6 +401,9 @@
       <div class="field field-full"><label>Producto *</label>
         <select id="v-producto" onchange="onProductoVentaChange()"><option value="">— Seleccionar —</option></select>
       </div>
+      <div id="v-variante-info" style="display:none;margin-top:6px;padding:6px 10px;border-radius:6px;background:var(--surface-2);border:1px solid var(--border)">
+  <!-- Se rellena dinámicamente por onProductoVentaChange() -->
+</div>
       <div class="field field-full" id="v-prod-manual-wrap" style="display:none">
         <label>Nombre del producto (manual)</label>
         <input id="v-prod-manual" placeholder="Escribe el nombre del producto">
@@ -517,6 +521,36 @@
   </div>
 </div>
 
+<!-- VARIANTES (Tallas / Colores) -->
+<div class="modal-overlay" id="modal-variantes">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <h3>📐 Tallas y colores — <span id="var-modal-nombre"></span></h3>
+      <button class="modal-close" onclick="closeModal('modal-variantes')">✕</button>
+    </div>
+    <div style="padding:16px 24px">
+      <!-- Lista existente -->
+      <div id="var-list" style="margin-bottom:20px"></div>
+      <!-- Agregar nueva variante -->
+      <div style="background:var(--surface-2,#f9f9f9);border:1px solid var(--border);border-radius:8px;padding:16px">
+        <div style="font-size:12px;font-weight:600;letter-spacing:1px;color:var(--text-muted);margin-bottom:12px">AGREGAR VARIANTE</div>
+        <div class="form-grid">
+          <div class="field"><label>Talla *</label><input id="var-talla" placeholder="Ej: 38, 39, M, L..."></div>
+          <div class="field"><label>Color <span style="font-size:10px;color:var(--text-muted)">(opcional)</span></label><input id="var-color" placeholder="Ej: Negro, Blanco..."></div>
+          <div class="field"><label>Color (hex)</label><input id="var-color-hex" type="color" value="#000000" style="height:38px;padding:2px"></div>
+          <div class="field"><label>Stock</label><input id="var-stock" type="number" min="0" value="0" placeholder="0"></div>
+          <div class="field"><label>Precio extra ($)</label><input id="var-extra" type="number" min="0" value="0" placeholder="0"></div>
+        </div>
+        <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="saveVarianteUI()">+ Agregar variante</button>
+      </div>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:10px">Las variantes definen qué tallas y colores están disponibles. El cliente podrá seleccionarlos al comprar.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-variantes')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- IMÁGENES PRODUCTO -->
 <div class="modal-overlay" id="modal-imagenes">
   <div class="modal" style="max-width:540px">
@@ -526,17 +560,21 @@
     </div>
     <div style="padding:16px 24px">
       <div id="img-modal-list" style="display:flex;gap:10px;flex-wrap:wrap;min-height:80px;margin-bottom:16px"></div>
-      <div id="img-drop-zone" style="border:2px dashed var(--border);border-radius:var(--radius-md);padding:24px 16px;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s"
+      <div id="img-drop-zone"
+        style="border:2px dashed var(--border);border-radius:8px;padding:24px 16px;text-align:center;cursor:pointer;transition:all 0.2s"
         onclick="document.getElementById('img-file-input').click()"
-        ondragover="event.preventDefault();this.style.borderColor='var(--gold)';this.style.background='var(--gold-bg)'"
+        ondragover="event.preventDefault();this.style.borderColor='var(--gold)';this.style.background='var(--gold-bg,#fef9e6)'"
         ondragleave="this.style.borderColor='var(--border)';this.style.background=''"
         ondrop="event.preventDefault();this.style.borderColor='var(--border)';this.style.background='';handleImgDrop(event)">
         <div style="font-size:32px;margin-bottom:8px">📸</div>
-        <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">Arrastra imágenes aquí o haz clic para seleccionar<br><span style="font-size:11px">JPG, PNG, WEBP · Máx 2MB c/u · Múltiples archivos</span></p>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">
+          Arrastra imágenes aquí o haz clic para seleccionar<br>
+          <span style="font-size:11px">JPG, PNG, WEBP · Máx 2MB · Múltiples archivos</span>
+        </p>
         <input type="file" id="img-file-input" accept="image/*" multiple style="display:none" onchange="uploadImageUI()">
         <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();document.getElementById('img-file-input').click()">📁 Seleccionar archivo(s)</button>
       </div>
-      <p style="font-size:11px;color:var(--text-muted);margin-top:10px">Toca ★ para marcar como imagen principal. La principal aparece en la tienda y en la tabla.</p>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:10px">★ = marcar como imagen principal (la que aparece en tienda y tabla).</p>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-imagenes')">Cerrar</button>
@@ -544,93 +582,7 @@
   </div>
 </div>
 
-<!-- SEGURIDAD -->
-<div class="modal-overlay" id="modal-seguridad">
-  <div class="modal" style="max-width:460px">
-    <div class="modal-header">
-      <h3>🔒 Seguridad de la cuenta</h3>
-      <button class="modal-close" onclick="closeModal('modal-seguridad')">✕</button>
-    </div>
-    <div style="padding:20px 24px;display:flex;flex-direction:column;gap:20px">
 
-      <!-- Cambiar email -->
-      <div>
-        <div style="font-size:11px;letter-spacing:2px;font-weight:700;color:var(--text-muted);margin-bottom:12px">CORREO ELECTRÓNICO</div>
-        <div class="field">
-          <label>Email actual</label>
-          <input id="seg-email-actual" type="email" disabled
-            style="opacity:0.6;cursor:default;background:var(--surface-2)">
-        </div>
-        <div class="field">
-          <label>Nuevo email</label>
-          <input id="seg-email-nuevo" type="email" placeholder="nuevo@correo.com">
-        </div>
-        <button class="btn btn-primary btn-sm" onclick="cambiarEmail()" style="margin-top:4px">
-          Actualizar email
-        </button>
-      </div>
-
-      <hr style="border:none;border-top:1px solid var(--border)">
-
-      <!-- Cambiar contraseña -->
-      <div>
-        <div style="font-size:11px;letter-spacing:2px;font-weight:700;color:var(--text-muted);margin-bottom:12px">CONTRASEÑA</div>
-        <div class="field">
-          <label>Nueva contraseña</label>
-          <div style="position:relative">
-            <input id="seg-pass-nueva" type="password" placeholder="Mínimo 8 caracteres"
-              style="padding-right:40px" oninput="evalPassSeguridad(this.value)">
-            <button onclick="togglePassVis('seg-pass-nueva',this)"
-              style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px">👁</button>
-          </div>
-          <!-- Barra de seguridad -->
-          <div id="pass-strength-bar" style="height:4px;border-radius:2px;margin-top:6px;background:var(--border);overflow:hidden">
-            <div id="pass-strength-fill" style="height:100%;width:0%;transition:width 0.3s,background 0.3s;border-radius:2px"></div>
-          </div>
-          <div id="pass-strength-label" style="font-size:11px;color:var(--text-muted);margin-top:4px"></div>
-        </div>
-        <div class="field">
-          <label>Confirmar contraseña</label>
-          <div style="position:relative">
-            <input id="seg-pass-confirm" type="password" placeholder="Repite la contraseña"
-              style="padding-right:40px">
-            <button onclick="togglePassVis('seg-pass-confirm',this)"
-              style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px">👁</button>
-          </div>
-        </div>
-        <button class="btn btn-accent btn-sm" onclick="cambiarPassword()" style="margin-top:4px">
-          Actualizar contraseña
-        </button>
-      </div>
-
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-seguridad')">Cerrar</button>
-    </div>
-  </div>
-</div>
-
-<!-- LOADER -->
-<div id="admin-loader" style="display:none;position:fixed;inset:0;background:rgba(26,20,16,0.45);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(2px)">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px 32px;text-align:center;box-shadow:var(--shadow-lg)">
-    <div style="font-size:28px;margin-bottom:8px;animation:spin 1s linear infinite">⚙️</div>
-    <div style="font-family:var(--font-display);letter-spacing:2px;color:var(--gold-dark);font-size:16px">PROCESANDO</div>
-  </div>
-</div>
-
-<div id="toast-container"></div>
-
-<style>
-@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-</style>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./js/admin/core.js"></script>
-<!-- Funciones SHARED declaradas en core.js -->
-
-<script src="./js/admin/pedidos_arreglos.js"></script>
-<script src="./js/admin/productos.js"></script>
-<script src="./js/admin/ventas.js"></script>
 <script>
 // ─── MENSAJES ────────────────────────────────────────────────────────
 let MENSAJES = [];
@@ -901,6 +853,7 @@ async function initApp() {
   await loadDB();
   await loadMensajes();
   renderDashboard();
+  renderProductos();
   renderMensajes();
   renderClientes();
   updateNavBadges();
@@ -919,4 +872,3 @@ window.addEventListener('load', () => {
 });
 </script>
 </body>
-</html>
