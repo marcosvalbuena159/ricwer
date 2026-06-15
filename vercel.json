@@ -2,24 +2,12 @@
   "outputDirectory": "public",
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/inicio",        "destination": "/index.html"   },
-    { "source": "/cliente",       "destination": "/cliente.html" },
-    { "source": "/administrador", "destination": "/admin.html"   }
+    { "source": "/administrador", "destination": "/admin" },
+    { "source": "/inicio",        "destination": "/index" }
   ],
   "redirects": [
-    { "source": "/admin",        "destination": "/administrador", "permanent": true },
     { "source": "/admin.html",   "destination": "/administrador", "permanent": true },
     { "source": "/cliente.html", "destination": "/cliente",       "permanent": true },
     { "source": "/index.html",   "destination": "/inicio",        "permanent": true }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff"                        },
-        { "key": "X-Frame-Options",        "value": "DENY"                           },
-        { "key": "Referrer-Policy",        "value": "strict-origin-when-cross-origin" }
-      ]
-    }
   ]
 }
