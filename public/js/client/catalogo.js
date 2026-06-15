@@ -158,11 +158,26 @@ function productCardHTML(p) {
 
   const isFav = (APP.favoritos || []).includes(p.id);
 
+  // Colores únicos con hex para mostrar en tarjeta
+  const coloresCard = [...new Map(
+    variantes.filter(v => v.activo && v.color).map(v => [v.color, v])
+  ).values()];
+
   // Si el usuario está filtrando por talla, resaltar esa talla en la tarjeta
   const tallaChipsHTML = tallas.slice(0, 6).map(t => {
     const esSeleccionada = _catTalla && String(t) === _catTalla;
     return `<span class="pc-chip${esSeleccionada ? ' pc-chip-active' : ''}">T${t}</span>`;
   }).join('') + (tallas.length > 6 ? `<span class="pc-chip">+${tallas.length - 6}</span>` : '');
+
+  // Puntos de color para la tarjeta (máx 6, con +N si hay más)
+  const colorDotsHTML = coloresCard.length > 0 ? `
+    <div class="pc-colors" style="display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap">
+      ${coloresCard.slice(0, 6).map(v => `
+        <span title="${v.color}" style="display:inline-block;width:14px;height:14px;border-radius:50%;
+          background:${v.color_hex || '#888'};border:1px solid rgba(255,255,255,0.25);flex-shrink:0"
+        ></span>`).join('')}
+      ${coloresCard.length > 6 ? `<span style="font-size:10px;color:var(--text-muted)">+${coloresCard.length - 6}</span>` : ''}
+    </div>` : '';
 
   return `<div class="product-card" onclick="openProducto('${p.id}')">
     <div class="pc-img-wrap">
@@ -180,6 +195,7 @@ function productCardHTML(p) {
       ${p.marca ? `<div class="pc-brand">${p.marca}</div>` : ''}
       <div class="pc-name">${p.nombre}</div>
       ${tallas.length ? `<div class="pc-chips">${tallaChipsHTML}</div>` : ''}
+      ${colorDotsHTML}
       <div class="pc-price">
         <span class="pc-price-main">${fmtMoneyFull(precioFinal)}</span>
         ${descuento > 0 ? `<span class="pc-price-old">${fmtMoneyFull(p.precio)}</span>` : ''}
@@ -264,7 +280,7 @@ async function openProducto(prodId) {
 
       ${p.descripcion ? `<p class="prod-desc">${p.descripcion}</p>` : ''}
 
-      ${colores.length > 1 ? `
+      ${colores.length >= 1 ? `
         <div>
           <div class="select-label">Color <span id="color-label">${_selectedColor || 'Selecciona'}</span></div>
           <div class="color-selector" id="color-selector">

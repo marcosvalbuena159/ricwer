@@ -1,18 +1,23 @@
 {
-  "version": 2,
+  "cleanUrls": true,
   "rewrites": [
-    { "source": "/", "destination": "/public/index.html" },
-    { "source": "/login", "destination": "/public/index.html" },
-    { "source": "/admin", "destination": "admin.html" },
-    { "source": "/tienda", "destination": "cliente.html" }
+    { "source": "/inicio",        "destination": "/index.html"   },
+    { "source": "/cliente",       "destination": "/cliente.html" },
+    { "source": "/administrador", "destination": "/admin.html"   }
+  ],
+  "redirects": [
+    { "source": "/admin",         "destination": "/administrador", "permanent": true },
+    { "source": "/admin.html",    "destination": "/administrador", "permanent": true },
+    { "source": "/cliente.html",  "destination": "/cliente",       "permanent": true },
+    { "source": "/index.html",    "destination": "/inicio",        "permanent": true }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "X-XSS-Protection", "value": "1; mode=block" }
+        { "key": "X-Frame-Options",        "value": "DENY"    },
+        { "key": "Referrer-Policy",        "value": "strict-origin-when-cross-origin" }
       ]
     }
   ]

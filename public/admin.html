@@ -401,9 +401,6 @@
       <div class="field field-full"><label>Producto *</label>
         <select id="v-producto" onchange="onProductoVentaChange()"><option value="">— Seleccionar —</option></select>
       </div>
-      <div id="v-variante-info" style="display:none;margin-top:6px;padding:6px 10px;border-radius:6px;background:var(--surface-2);border:1px solid var(--border)">
-  <!-- Se rellena dinámicamente por onProductoVentaChange() -->
-</div>
       <div class="field field-full" id="v-prod-manual-wrap" style="display:none">
         <label>Nombre del producto (manual)</label>
         <input id="v-prod-manual" placeholder="Escribe el nombre del producto">
@@ -720,15 +717,22 @@ function openSeguridad() {
   document.getElementById('pass-strength-label').textContent = '';
 }
 
-// Llenar email al abrir modal
-document.getElementById('modal-seguridad').addEventListener('click', e => {
-  if (!document.getElementById('seg-email-actual').value) openSeguridad();
-}, { once: false });
-const _origOpenModal = openModal;
-window.openModal = function(id) {
-  _origOpenModal(id);
-  if (id === 'modal-seguridad') openSeguridad();
-};
+// Llenar email al abrir modal — se registra en initApp para garantizar
+// que openModal ya exista cuando se asigna el wrapper.
+function _setupModalSeguridad() {
+  const modalEl = document.getElementById('modal-seguridad');
+  if (modalEl) {
+    modalEl.addEventListener('click', e => {
+      if (!document.getElementById('seg-email-actual').value) openSeguridad();
+    });
+  }
+  // Envolver openModal para que abra el form de seguridad automáticamente
+  const _origOpenModal = openModal;
+  window.openModal = function(id) {
+    _origOpenModal(id);
+    if (id === 'modal-seguridad') openSeguridad();
+  };
+}
 
 function togglePassVis(inputId, btn) {
   const input = document.getElementById(inputId);
@@ -857,6 +861,7 @@ async function initApp() {
   renderMensajes();
   renderClientes();
   updateNavBadges();
+  _setupModalSeguridad(); // registrar listeners de modales después del DOM
 }
 
 // Esperar a que la protección de auth termine antes de inicializar
