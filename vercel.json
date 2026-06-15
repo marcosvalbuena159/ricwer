@@ -1,15 +1,15 @@
 {
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/inicio",        "destination": "/index.html"   },
-    { "source": "/cliente",       "destination": "/cliente.html" },
-    { "source": "/administrador", "destination": "/admin.html"   }
+    { "source": "/inicio",        "destination": "public/index.html"   },
+    { "source": "/cliente",       "destination": "public/cliente.html" },
+    { "source": "/administrador", "destination": "public/admin.html"   }
   ],
   "redirects": [
-    { "source": "/admin",         "destination": "/administrador", "permanent": true },
-    { "source": "/admin.html",    "destination": "/administrador", "permanent": true },
-    { "source": "/cliente.html",  "destination": "/cliente",       "permanent": true },
-    { "source": "/index.html",    "destination": "/inicio",        "permanent": true }
+    { "source": "/admin",         "destination": "public/admin.html", "permanent": true },
+    { "source": "/admin.html",    "destination": "public/admin.html", "permanent": true },
+    { "source": "/cliente.html",  "destination": "public/cliente.html", "permanent": true },
+    { "source": "/index.html",    "destination": "public/index.html", "permanent": true }
   ],
   "headers": [
     {
