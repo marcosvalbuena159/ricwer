@@ -171,10 +171,11 @@ function productCardHTML(p) {
 
   // Puntos de color para la tarjeta (máx 6, con +N si hay más)
   const colorDotsHTML = coloresCard.length > 0 ? `
-    <div class="pc-colors" style="display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap">
+    <div class="pc-colors">
       ${coloresCard.slice(0, 6).map(v => `
-        <span title="${v.color}" style="display:inline-block;width:14px;height:14px;border-radius:50%;
-          background:${v.color_hex || '#888'};border:1px solid rgba(255,255,255,0.25);flex-shrink:0"
+        <span class="pc-color-dot"
+          title="${v.color}"
+          style="background:${v.color_hex || '#888888'}"
         ></span>`).join('')}
       ${coloresCard.length > 6 ? `<span style="font-size:10px;color:var(--text-muted)">+${coloresCard.length - 6}</span>` : ''}
     </div>` : '';
@@ -182,6 +183,7 @@ function productCardHTML(p) {
   return `<div class="product-card" onclick="openProducto('${p.id}')">
     <div class="pc-img-wrap">
       <div class="pc-img-inner">${productImgHTML(imagenes)}</div>
+      <div class="pc-zoom-overlay"><div class="pc-zoom-icon">🔍</div></div>
       <div class="pc-badges">
         ${p.destacado ? '<span class="pc-badge nuevo">Destacado</span>' : ''}
         ${p.es_nuevo ? '<span class="pc-badge nuevo" style="background:var(--gold);color:#000">Nuevo</span>' : ''}
