@@ -341,50 +341,182 @@
 
 <!-- ════════════════ MODALES ════════════════ -->
 
-<!-- PRODUCTO -->
-<div class="modal-overlay" id="modal-prod">
-  <div class="modal">
+<!-- ─── MODAL 1: DATOS BASE ──────────────────────────────────────── -->
+<div id="modal-prod" class="modal-overlay">
+  <div class="modal" style="max-width:520px">
     <div class="modal-header">
-      <h3 id="modal-prod-title">Nuevo producto</h3>
-      <button class="modal-close" onclick="closeModal('modal-prod')">✕</button>
+      <h3 class="modal-title" id="modal-prod-title">Nuevo producto</h3>
+      <button class="modal-close" onclick="closeModal('modal-prod')">×</button>
     </div>
-    <div class="form-grid">
-      <div class="field field-full"><label>Nombre del producto *</label><input id="p-nombre" placeholder="Ej: Tenis Nike Air Max 90"></div>
-      <div class="field"><label>Referencia</label><input id="p-ref" placeholder="REF-001"></div>
-      <div class="field"><label>Marca</label><input id="p-marca" placeholder="Nike, Adidas..."></div>
-      <div class="field"><label>Categoría</label>
-        <select id="p-cat"><option>Tenis</option><option>Botines</option><option>Sandalias</option><option>Tacones</option><option>Botas</option><option>Mocasines</option><option>Baletas</option><option>Otro</option></select>
+    <div class="modal-body">
+      <input type="hidden" id="p-id">
+ 
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <!-- Marca -->
+        <div class="form-group">
+          <label class="form-label">Marca *</label>
+          <input id="p-marca" class="form-input" placeholder="New Balance, Nike…">
+        </div>
+        <!-- Referencia -->
+        <div class="form-group">
+          <label class="form-label">Referencia *</label>
+          <input id="p-ref" class="form-input" placeholder="560, Air Max 90…">
+        </div>
       </div>
-      <div class="field"><label>Género</label>
-        <select id="p-genero"><option value="Unisex">Unisex</option><option value="Hombre">Hombre</option><option value="Mujer">Mujer</option><option value="Niño">Niño</option><option value="Niña">Niña</option></select>
+ 
+      <!-- Nombre interno (oculto, se construye de marca+ref) -->
+      <input type="hidden" id="p-nombre">
+ 
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
+        <!-- Categoría -->
+        <div class="form-group">
+          <label class="form-label">Categoría *</label>
+          <select id="p-cat" class="form-input">
+            <option>Tenis</option><option>Botines</option><option>Sandalias</option>
+            <option>Botas</option><option>Mocasines</option><option>Deportivos</option>
+            <option>Infantil</option><option>Otro</option>
+          </select>
+        </div>
+        <!-- Género -->
+        <div class="form-group">
+          <label class="form-label">Género</label>
+          <select id="p-genero" class="form-input">
+            <option>Unisex</option><option>Hombre</option><option>Mujer</option>
+            <option>Niño</option><option>Niña</option>
+          </select>
+        </div>
       </div>
-      <div class="field"><label>Precio de compra ($)</label><input id="p-costo" type="number" min="0" placeholder="0"></div>
-      <div class="field"><label>Precio de venta ($)</label><input id="p-precio" type="number" min="0" placeholder="0"></div>
-      <div class="field"><label>Precio con descuento ($) <span style="font-size:10px;color:var(--text-muted)">(opcional)</span></label><input id="p-precio-desc" type="number" min="0" placeholder="Dejar vacío si no aplica"></div>
-      <div class="field"><label>Stock disponible</label><input id="p-stock" type="number" min="0" placeholder="0"></div>
-      <div class="field"><label>Stock mínimo (alerta)</label><input id="p-stockmin" type="number" min="0" value="2"></div>
-      <div class="field field-full" style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
-          <input type="checkbox" id="p-activo" checked style="width:16px;height:16px;accent-color:var(--gold)"> Activo (visible en tienda)
+ 
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:4px">
+        <!-- Precio compra -->
+        <div class="form-group">
+          <label class="form-label">Precio compra</label>
+          <input id="p-costo" class="form-input" type="number" min="0" placeholder="0">
+        </div>
+        <!-- Precio venta -->
+        <div class="form-group">
+          <label class="form-label">Precio venta *</label>
+          <input id="p-precio" class="form-input" type="number" min="0" placeholder="0">
+        </div>
+        <!-- Descuento -->
+        <div class="form-group">
+          <label class="form-label">Precio c/descuento</label>
+          <input id="p-precio-desc" class="form-input" type="number" min="0" placeholder="Vacío = sin desc.">
+        </div>
+      </div>
+ 
+      <!-- Descripción -->
+      <div class="form-group" style="margin-top:4px">
+        <label class="form-label">Descripción</label>
+        <textarea id="p-descripcion" class="form-input" rows="2"
+          placeholder="Material, suela, características especiales…" style="resize:vertical"></textarea>
+      </div>
+ 
+      <!-- Checkboxes de estado -->
+      <div style="display:flex;gap:20px;margin-top:8px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+          <input type="checkbox" id="p-activo" checked> Activo / visible
         </label>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
-          <input type="checkbox" id="p-destacado" style="width:16px;height:16px;accent-color:var(--gold)"> ★ Destacado (home)
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+          <input type="checkbox" id="p-destacado"> ★ Destacado
         </label>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
-          <input type="checkbox" id="p-nuevo" style="width:16px;height:16px;accent-color:var(--gold)"> 🆕 Novedad (home)
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+          <input type="checkbox" id="p-nuevo"> 🆕 Novedad
         </label>
       </div>
-      <div class="field field-full"><label>Descripción <span style="font-size:10px;color:var(--text-muted)">(visible en tienda)</span></label><textarea id="p-descripcion" placeholder="Descripción del producto para los clientes..." rows="2"></textarea></div>
-      <div class="field field-full"><label>Notas internas</label><textarea id="p-notas" placeholder="Detalles adicionales (solo admin)..."></textarea></div>
+ 
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+        <div class="form-group">
+          <label class="form-label">Stock mínimo (alerta)</label>
+          <input id="p-stockmin" class="form-input" type="number" min="0" value="2">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notas internas</label>
+          <input id="p-notas" class="form-input" placeholder="Solo el admin las ve">
+        </div>
+      </div>
     </div>
-    <input type="hidden" id="p-id">
     <div class="modal-footer">
-      <div class="btn-row">
-        <button class="btn btn-primary" onclick="saveProductoUI()">💾 Guardar</button>
-        <button id="p-btn-imagenes" class="btn btn-ghost" style="display:none" onclick="saveAndOpenImages()">🖼️ Imágenes</button>
-        <button id="p-btn-variantes" class="btn btn-ghost" style="display:none" onclick="saveAndOpenVariantes()">📐 Tallas/Colores</button>
-        <button class="btn btn-ghost" onclick="closeModal('modal-prod')">Cancelar</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-prod')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveProductoUI()">
+        Guardar y agregar tallas →
+      </button>
+    </div>
+  </div>
+</div>
+ 
+<!-- ─── MODAL 2: DETALLE — VARIANTES + IMÁGENES POR COLOR ────────── -->
+<div id="modal-detalle-prod" class="modal-overlay">
+  <div class="modal" style="max-width:700px;max-height:90vh;display:flex;flex-direction:column">
+    <div class="modal-header">
+      <h3 class="modal-title" id="det-modal-nombre">Detalle del producto</h3>
+      <button class="modal-close" onclick="closeModal('modal-detalle-prod')">×</button>
+    </div>
+ 
+    <div class="modal-body" style="overflow-y:auto;flex:1;padding-bottom:0">
+ 
+      <!-- ── Variantes existentes ─────────────────────────────── -->
+      <div style="font-size:12px;font-weight:600;color:var(--text-muted);letter-spacing:1px;margin-bottom:8px">
+        TALLAS Y COLORES
       </div>
+      <div id="det-var-list"></div>
+ 
+      <!-- ── Agregar nueva variante ───────────────────────────── -->
+      <div style="border:1px dashed var(--border);border-radius:8px;padding:12px;margin-top:8px;background:var(--surface)">
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:10px">+ AGREGAR TALLA</div>
+        <div style="display:grid;grid-template-columns:80px 1fr 50px 50px 80px auto;gap:8px;align-items:end">
+          <div>
+            <label style="font-size:11px;color:var(--text-muted)">Talla *</label>
+            <input id="det-talla" class="form-input" style="padding:6px 8px" placeholder="36">
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text-muted)">Color</label>
+            <input id="det-color" class="form-input" style="padding:6px 8px" placeholder="Blanco">
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text-muted)">Hex</label>
+            <input id="det-color-hex" type="color" value="#ffffff"
+              style="width:100%;height:34px;padding:2px;border:1px solid var(--border);border-radius:4px;cursor:pointer">
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text-muted)">Pares</label>
+            <input id="det-stock" class="form-input" type="number" min="0" value="0" style="padding:6px 8px">
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text-muted)">+Precio</label>
+            <input id="det-extra" class="form-input" type="number" min="0" value="0" style="padding:6px 8px">
+          </div>
+          <div>
+            <button class="btn btn-primary btn-sm" onclick="saveVarianteUI()" style="height:34px;white-space:nowrap">
+              + Agregar
+            </button>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px">
+          Agrega una fila por talla. Si el mismo modelo tiene varios colores, agrega cada combinación talla+color por separado.
+        </div>
+      </div>
+ 
+      <!-- ── Imágenes generales ───────────────────────────────── -->
+      <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+        <div style="font-size:12px;font-weight:600;color:var(--text-muted);letter-spacing:1px;margin-bottom:8px">
+          IMÁGENES <span style="font-weight:400;font-size:11px">(usa el botón 📷 en cada color para vincular imagen al color)</span>
+        </div>
+        <div id="det-img-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-bottom:10px"></div>
+        <label class="btn btn-ghost btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+          📁 Subir imagen general
+          <input id="det-img-input" type="file" accept="image/*" multiple style="display:none"
+            onchange="uploadImageUI()">
+        </label>
+      </div>
+ 
+    </div><!-- /modal-body -->
+ 
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-detalle-prod')">Cerrar</button>
+      <button class="btn btn-ghost btn-sm" onclick="editProducto(_detProdId);closeModal('modal-detalle-prod')">
+        ✏️ Editar datos base
+      </button>
     </div>
   </div>
 </div>
@@ -518,66 +650,7 @@
   </div>
 </div>
 
-<!-- VARIANTES (Tallas / Colores) -->
-<div class="modal-overlay" id="modal-variantes">
-  <div class="modal" style="max-width:640px">
-    <div class="modal-header">
-      <h3>📐 Tallas y colores — <span id="var-modal-nombre"></span></h3>
-      <button class="modal-close" onclick="closeModal('modal-variantes')">✕</button>
-    </div>
-    <div style="padding:16px 24px">
-      <!-- Lista existente -->
-      <div id="var-list" style="margin-bottom:20px"></div>
-      <!-- Agregar nueva variante -->
-      <div style="background:var(--surface-2,#f9f9f9);border:1px solid var(--border);border-radius:8px;padding:16px">
-        <div style="font-size:12px;font-weight:600;letter-spacing:1px;color:var(--text-muted);margin-bottom:12px">AGREGAR VARIANTE</div>
-        <div class="form-grid">
-          <div class="field"><label>Talla *</label><input id="var-talla" placeholder="Ej: 38, 39, M, L..."></div>
-          <div class="field"><label>Color <span style="font-size:10px;color:var(--text-muted)">(opcional)</span></label><input id="var-color" placeholder="Ej: Negro, Blanco..."></div>
-          <div class="field"><label>Color (hex)</label><input id="var-color-hex" type="color" value="#000000" style="height:38px;padding:2px"></div>
-          <div class="field"><label>Stock</label><input id="var-stock" type="number" min="0" value="0" placeholder="0"></div>
-          <div class="field"><label>Precio extra ($)</label><input id="var-extra" type="number" min="0" value="0" placeholder="0"></div>
-        </div>
-        <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="saveVarianteUI()">+ Agregar variante</button>
-      </div>
-      <p style="font-size:11px;color:var(--text-muted);margin-top:10px">Las variantes definen qué tallas y colores están disponibles. El cliente podrá seleccionarlos al comprar.</p>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-variantes')">Cerrar</button>
-    </div>
-  </div>
-</div>
 
-<!-- IMÁGENES PRODUCTO -->
-<div class="modal-overlay" id="modal-imagenes">
-  <div class="modal" style="max-width:540px">
-    <div class="modal-header">
-      <h3>🖼️ Imágenes — <span id="img-modal-nombre"></span></h3>
-      <button class="modal-close" onclick="closeModal('modal-imagenes')">✕</button>
-    </div>
-    <div style="padding:16px 24px">
-      <div id="img-modal-list" style="display:flex;gap:10px;flex-wrap:wrap;min-height:80px;margin-bottom:16px"></div>
-      <div id="img-drop-zone"
-        style="border:2px dashed var(--border);border-radius:8px;padding:24px 16px;text-align:center;cursor:pointer;transition:all 0.2s"
-        onclick="document.getElementById('img-file-input').click()"
-        ondragover="event.preventDefault();this.style.borderColor='var(--gold)';this.style.background='var(--gold-bg,#fef9e6)'"
-        ondragleave="this.style.borderColor='var(--border)';this.style.background=''"
-        ondrop="event.preventDefault();this.style.borderColor='var(--border)';this.style.background='';handleImgDrop(event)">
-        <div style="font-size:32px;margin-bottom:8px">📸</div>
-        <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">
-          Arrastra imágenes aquí o haz clic para seleccionar<br>
-          <span style="font-size:11px">JPG, PNG, WEBP · Máx 2MB · Múltiples archivos</span>
-        </p>
-        <input type="file" id="img-file-input" accept="image/*" multiple style="display:none" onchange="uploadImageUI()">
-        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();document.getElementById('img-file-input').click()">📁 Seleccionar archivo(s)</button>
-      </div>
-      <p style="font-size:11px;color:var(--text-muted);margin-top:10px">★ = marcar como imagen principal (la que aparece en tienda y tabla).</p>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-imagenes')">Cerrar</button>
-    </div>
-  </div>
-</div>
 
 
 <!-- ─── Scripts externos — deben cargarse ANTES del inline ─── -->
