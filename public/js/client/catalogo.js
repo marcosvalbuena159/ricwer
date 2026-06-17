@@ -402,7 +402,25 @@ function selectTalla(talla) {
 }
 
 function changeQty(delta) {
-  _cantidad = Math.max(1, Math.min(10, _cantidad + delta));
+  // Calcular stock máximo de la variante seleccionada
+  let stockMax = 10;
+  if (_currentProd && _selectedTalla) {
+    const variantes = _currentProd.producto_variantes || [];
+    const v = variantes.find(v =>
+      v.talla === _selectedTalla &&
+      (!_selectedColor || v.color === _selectedColor) &&
+      v.activo
+    );
+    if (v) stockMax = Math.max(1, Number(v.stock || 1));
+  }
+
+  const nuevo = _cantidad + delta;
+  if (nuevo < 1) return;
+  if (nuevo > stockMax) {
+    toast(`Solo hay ${stockMax} par${stockMax > 1 ? 'es' : ''} disponibles`, 'error');
+    return;
+  }
+  _cantidad = nuevo;
   const el = document.getElementById('qty-val');
   if (el) el.textContent = _cantidad;
 }

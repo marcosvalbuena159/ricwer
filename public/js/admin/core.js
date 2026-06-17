@@ -442,9 +442,17 @@ async function uploadProductImage(prodId, file) {
   const { error: upErr } = await sb.storage.from('productos').upload(path, file, { upsert: true });
   if (upErr) { toast('Error subiendo imagen: ' + upErr.message, 'error'); return null; }
   const { data: { publicUrl } } = sb.storage.from('productos').getPublicUrl(path);
+  // Si no hay imágenes aún, esta será la principal automáticamente
+  const { count } = await sb.from('producto_imagenes')
+    .select('id', { count: 'exact', head: true })
+    .eq('producto_id', prodId);
+  const esPrimera = (count || 0) === 0;
   const { error: dbErr } = await sb.from('producto_imagenes').insert({
-    producto_id: prodId, url: publicUrl, storage_path: path,
-    es_principal: false, orden: 0,
+    producto_id:  prodId,
+    url:          publicUrl,
+    storage_path: path,
+    es_principal: esPrimera,
+    orden:        count || 0,
   });
   if (dbErr) { toast('Error guardando imagen: ' + dbErr.message, 'error'); return null; }
   return { url: publicUrl, path };
