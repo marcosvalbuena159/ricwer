@@ -1469,3 +1469,280 @@ input[readonly] {
   .pc-name     { font-size: 13px !important; }
   .pc-price-main { font-size: 15px !important; }
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   RICWER — FLUJO COLOR → TALLA → CANTIDAD + LUPA + LEGIBILIDAD
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ─── PASOS SELECTOR (Color → Talla → Cantidad) ──────────────────── */
+.selector-step {
+  margin-bottom: 20px;
+  transition: opacity 0.25s ease;
+}
+.selector-step.step-locked {
+  opacity: 0.35;
+  pointer-events: none;
+  user-select: none;
+}
+.selector-step.step-done .select-label { color: var(--text-muted); }
+.selector-step.step-active .select-label { color: var(--text); }
+
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: #000;
+  font-size: 10px;
+  font-weight: 800;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+.step-val {
+  font-weight: 700;
+  color: var(--text);
+  margin-left: 6px;
+}
+.step-check {
+  color: var(--green, #16a34a);
+  font-size: 12px;
+  margin-left: 6px;
+}
+.step-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-left: 6px;
+  font-style: italic;
+}
+
+/* ─── SIZE OPTIONS — solo número, sin cantidad ────────────────────── */
+.size-option {
+  min-width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  flex-direction: column;
+}
+.size-option:hover:not(:disabled) {
+  border-color: var(--gold);
+  background: var(--gold-bg);
+  color: var(--gold-dark);
+}
+.size-option.active {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #000;
+  font-weight: 800;
+}
+.size-option.agotado {
+  opacity: 0.35;
+  cursor: not-allowed;
+  text-decoration: line-through;
+  color: var(--text-dim);
+}
+
+/* ─── GALERÍA con lupa ────────────────────────────────────────────── */
+.gallery-main {
+  position: relative;
+  cursor: zoom-in;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--surface2);
+}
+.gallery-main img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+.gallery-main:hover img { transform: scale(1.04); }
+
+.gallery-zoom-hint {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  background: rgba(255,255,255,0.9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.gallery-main:hover .gallery-zoom-hint {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ─── ADD CART BTN ───────────────────────────────────────────────── */
+.add-cart-btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--gold);
+  color: #000;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin: 8px 0;
+}
+.add-cart-btn:hover:not(:disabled) {
+  background: var(--gold-light, #d4a844);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(201,168,76,0.35);
+}
+.add-cart-btn:disabled {
+  background: var(--surface2);
+  color: var(--text-dim);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.add-cart-btn.added {
+  background: var(--green, #16a34a);
+  color: #fff;
+}
+
+/* ─── LEGIBILIDAD CATÁLOGO ────────────────────────────────────────── */
+/* Chips de categoría — texto siempre visible */
+.chip-filter {
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text) !important;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+.chip-filter:hover {
+  border-color: var(--gold);
+  background: var(--gold-bg);
+  color: var(--gold-dark) !important;
+}
+.chip-filter.active {
+  background: var(--gold) !important;
+  border-color: var(--gold) !important;
+  color: #000 !important;
+  font-weight: 700;
+}
+
+/* Nombre y precio en tarjeta — forzar color oscuro ──────────────── */
+.pc-name,
+.pc-price-main {
+  color: #1a1410 !important;
+}
+.pc-brand {
+  color: #8a7560 !important;
+}
+
+/* ─── CÓDIGO PROMOCIONAL — legibilidad ────────────────────────────── */
+.coupon-input-wrap {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.coupon-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font-body);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  outline: none;
+  transition: border-color 0.18s;
+}
+.coupon-input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.12);
+}
+.coupon-input::placeholder {
+  color: var(--text-dim);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ─── QTY SELECTOR en detalle producto ──────────────────────────── */
+.qty-selector {
+  display: inline-flex;
+  align-items: center;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.qty-btn {
+  width: 42px;
+  height: 42px;
+  border: none;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.qty-btn:hover { background: var(--gold-bg); color: var(--gold-dark); }
+.qty-val {
+  min-width: 48px;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  border-left: 1.5px solid var(--border);
+  border-right: 1.5px solid var(--border);
+  line-height: 42px;
+}
+
+/* ─── SELECT LABEL en detalle ────────────────────────────────────── */
+.select-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+/* ─── SIZE SELECTOR grid ─────────────────────────────────────────── */
+.size-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}

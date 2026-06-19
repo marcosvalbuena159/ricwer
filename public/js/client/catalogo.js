@@ -249,15 +249,31 @@ async function openProducto(prodId) {
 
   const isFav = (APP.favoritos || []).includes(p.id);
 
+  // ¿El producto tiene colores definidos?
+  const tieneColores = colores.length >= 1;
+  // Si solo hay un color único, auto-seleccionarlo
+  if (tieneColores && colores.length === 1) {
+    _selectedColor = colores[0].color;
+  }
+  // Si ya hay talla pre-seleccionada (viene del filtro), resetear cantidad
+  _cantidad = 1;
+
   content.innerHTML = `
     <div class="prod-gallery">
-      <div class="gallery-main" id="gallery-main">
-        ${mainImg?.url ? `<img src="${mainImg.url}" alt="${p.nombre}" />` : '<span style="font-size:140px">👟</span>'}
+      <!-- Imagen principal con lupa -->
+      <div class="gallery-main" id="gallery-main" onclick="openZoom('${mainImg?.url || ''}')">
+        ${mainImg?.url
+          ? `<img src="${mainImg.url}" alt="${p.nombre}" id="gallery-main-img" />`
+          : '<span style="font-size:140px">👟</span>'}
+        <div class="gallery-zoom-hint" id="gallery-zoom-hint">
+          <span>🔍</span>
+        </div>
       </div>
       ${imgList.length > 1 ? `
         <div class="gallery-thumbs">
           ${imgList.map((img, i) => `
-            <div class="gallery-thumb ${i === 0 ? 'active' : ''}" onclick="setGalleryImg('${img.url}',${i})">
+            <div class="gallery-thumb ${i === 0 ? 'active' : ''}"
+              onclick="setGalleryImg('${img.url}',${i})">
               <img src="${img.url}" alt="" />
             </div>
           `).join('')}
@@ -282,9 +298,14 @@ async function openProducto(prodId) {
 
       ${p.descripcion ? `<p class="prod-desc">${p.descripcion}</p>` : ''}
 
-      ${colores.length >= 1 ? `
-        <div>
-          <div class="select-label">Color <span id="color-label">${_selectedColor || 'Selecciona'}</span></div>
+      <!-- ── PASO 1: Color ────────────────────────── -->
+      ${tieneColores ? `
+        <div class="selector-step ${!_selectedColor ? 'step-active' : 'step-done'}" id="step-color">
+          <div class="select-label">
+            <span class="step-num">1</span> Color
+            <span id="color-label" class="step-val">${_selectedColor || ''}</span>
+            ${_selectedColor ? `<span class="step-check">✓</span>` : '<span class="step-hint">← elige primero</span>'}
+          </div>
           <div class="color-selector" id="color-selector">
             ${colores.map(v => `
               <div class="color-option ${_selectedColor === v.color ? 'active' : ''}"
@@ -298,21 +319,26 @@ async function openProducto(prodId) {
         </div>
       ` : ''}
 
-      <div>
+      <!-- ── PASO 2: Talla (aparece tras elegir color) ── -->
+      <div class="selector-step ${_selectedColor || !tieneColores ? '' : 'step-locked'}" id="step-talla">
         <div class="select-label">
-          Talla
-          <span id="talla-label">${_selectedTalla ? 'Talla ' + _selectedTalla : 'Selecciona una talla'}</span>
+          <span class="step-num">${tieneColores ? '2' : '1'}</span> Talla
+          <span id="talla-label" class="step-val">${_selectedTalla ? _selectedTalla : ''}</span>
+          ${_selectedTalla ? `<span class="step-check">✓</span>` : (!_selectedColor && tieneColores ? '<span class="step-hint">← elige color primero</span>' : '')}
         </div>
         <div class="size-selector" id="size-selector">
-          ${renderTallasHTML(getTallas())}
-        </div>
-        <div style="margin-top:8px;font-size:11px;color:var(--text-dim)">
-          Solo se muestran tallas con stock disponible.
+          ${(_selectedColor || !tieneColores)
+            ? renderTallasHTML(getTallas(_selectedColor))
+            : '<span style="font-size:12px;color:var(--text-dim)">Elige un color para ver las tallas disponibles.</span>'}
         </div>
       </div>
 
-      <div>
-        <div class="select-label">Cantidad</div>
+      <!-- ── PASO 3: Cantidad (aparece tras elegir talla) ── -->
+      <div class="selector-step ${_selectedTalla ? '' : 'step-locked'}" id="step-cantidad">
+        <div class="select-label">
+          <span class="step-num">${tieneColores ? '3' : '2'}</span> Cantidad
+          ${_selectedTalla ? `<span class="step-val" style="font-size:11px;color:var(--text-dim)">máx. <span id="stock-max-label"></span></span>` : ''}
+        </div>
         <div class="qty-selector">
           <button class="qty-btn" onclick="changeQty(-1)">−</button>
           <div class="qty-val" id="qty-val">${_cantidad}</div>
@@ -333,14 +359,8 @@ async function openProducto(prodId) {
         </button>
       </div>
 
-      ${p.notas ? `
-        <div style="margin-top:20px;padding:16px;background:var(--surface2);border-radius:var(--radius);border:1px solid var(--border);font-size:12px;color:var(--text-muted)">
-          📝 ${p.notas}
-        </div>
-      ` : ''}
-
-      <div style="margin-top:24px;padding:16px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border)">
-        <div style="display:flex;flex-direction:column;gap:10px;font-size:12px;color:var(--text-muted)">
+      <div style="margin-top:20px;padding:14px 16px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border)">
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--text-muted)">
           <div>🚚 Envío a todo Colombia · 2-5 días hábiles</div>
           <div>🏪 Recoge en tienda · Medellín · 1-2 días hábiles</div>
           <div>↩️ Cambios y devoluciones en 7 días</div>
@@ -351,6 +371,30 @@ async function openProducto(prodId) {
   `;
 
   updateAddCartBtn();
+  // Si ya hay color auto-seleccionado, mostrar tallas
+  if (_selectedColor) {
+    const varsFiltradas = (p.producto_variantes || []).filter(v => v.activo && v.color === _selectedColor);
+    document.getElementById('size-selector').innerHTML = renderTallasHTML(varsFiltradas);
+  }
+}
+
+// Zoom modal de imagen
+function openZoom(url) {
+  if (!url) return;
+  let overlay = document.getElementById('zoom-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'zoom-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out';
+    overlay.onclick = () => overlay.remove();
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <img src="${url}" style="max-width:92vw;max-height:92vh;object-fit:contain;border-radius:4px;box-shadow:0 8px 40px rgba(0,0,0,0.6)">
+    <button onclick="document.getElementById('zoom-overlay').remove()"
+      style="position:absolute;top:16px;right:20px;background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:24px;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+  `;
+  overlay.style.display = 'flex';
 }
 
 function renderTallasHTML(variantes) {
@@ -366,11 +410,10 @@ function renderTallasHTML(variantes) {
     return (!isNaN(na) && !isNaN(nb)) ? na - nb : a.localeCompare(b);
   });
   return sorted.map(([talla, stock]) => `
-    <button class="size-option ${stock === 0 ? 'agotado' : ''} ${_selectedTalla === talla ? 'active' : ''}"
+    <button class="size-option ${stock === 0 ? 'agotado' : ''} ${_selectedTalla === String(talla) ? 'active' : ''}"
       onclick="${stock > 0 ? `selectTalla('${talla}')` : ''}"
       ${stock === 0 ? 'disabled title="Agotado"' : ''}>
       ${talla}
-      ${stock > 0 && stock <= 3 ? `<span style="display:block;font-size:9px;color:var(--accent);line-height:1">¡${stock} par${stock > 1 ? 'es' : ''}!</span>` : ''}
     </button>
   `).join('');
 }
@@ -383,21 +426,75 @@ function setGalleryImg(url, idx) {
 function selectColor(color) {
   _selectedColor = color;
   _selectedTalla = null;
-  document.getElementById('color-label').textContent = color;
+  _cantidad = 1;
+
+  // Actualizar label y dots
+  const labelEl = document.getElementById('color-label');
+  if (labelEl) labelEl.textContent = color;
   document.querySelectorAll('.color-option').forEach(el => {
     el.classList.toggle('active', el.title === color);
   });
-  const variantes = _currentProd.producto_variantes.filter(v => v.activo && v.color === color);
-  document.getElementById('size-selector').innerHTML = renderTallasHTML(variantes);
+
+  // Pasos visuales
+  const stepColor  = document.getElementById('step-color');
+  const stepTalla  = document.getElementById('step-talla');
+  const stepCant   = document.getElementById('step-cantidad');
+  if (stepColor) { stepColor.classList.remove('step-active'); stepColor.classList.add('step-done'); }
+  if (stepTalla) { stepTalla.classList.remove('step-locked'); }
+  if (stepCant)  { stepCant.classList.add('step-locked'); }
+
+  // Mostrar tallas de este color
+  const variantes = (_currentProd.producto_variantes || []).filter(v => v.activo && v.color === color);
+  const sizeEl = document.getElementById('size-selector');
+  if (sizeEl) sizeEl.innerHTML = renderTallasHTML(variantes);
+
+  // Actualizar hint en step-talla
+  const tallaLabel = document.getElementById('talla-label');
+  if (tallaLabel) tallaLabel.textContent = '';
+  const stepHint = stepTalla?.querySelector('.step-hint');
+  if (stepHint) stepHint.remove();
+
+  // Cambiar imagen si hay imagen vinculada a este color
+  if (_currentProd.producto_imagenes) {
+    const imgColor = _currentProd.producto_imagenes.find(i => i.color_ref === color);
+    if (imgColor?.url) {
+      const mainEl = document.getElementById('gallery-main-img');
+      if (mainEl) mainEl.src = imgColor.url;
+    }
+  }
+
   updateAddCartBtn();
 }
 
 function selectTalla(talla) {
   _selectedTalla = talla;
-  document.getElementById('talla-label').textContent = `Talla ${talla}`;
+  _cantidad = 1;
+
+  const tallaLabel = document.getElementById('talla-label');
+  if (tallaLabel) tallaLabel.textContent = talla;
+
   document.querySelectorAll('.size-option').forEach(el => {
-    el.classList.toggle('active', el.textContent.trim().startsWith(talla));
+    el.classList.toggle('active', el.textContent.trim() === String(talla));
   });
+
+  // Mostrar paso de cantidad
+  const stepCant = document.getElementById('step-cantidad');
+  if (stepCant) stepCant.classList.remove('step-locked');
+
+  // Mostrar stock máximo
+  const variantes = _currentProd?.producto_variantes || [];
+  const v = variantes.find(v =>
+    String(v.talla) === String(talla) &&
+    (!_selectedColor || v.color === _selectedColor) &&
+    v.activo
+  );
+  const maxEl = document.getElementById('stock-max-label');
+  if (maxEl && v) maxEl.textContent = `${v.stock} par${v.stock !== 1 ? 'es' : ''}`;
+
+  // Reset cantidad a 1
+  const qtyEl = document.getElementById('qty-val');
+  if (qtyEl) qtyEl.textContent = '1';
+
   updateAddCartBtn();
 }
 
@@ -428,10 +525,22 @@ function changeQty(delta) {
 function updateAddCartBtn() {
   const btn = document.getElementById('add-cart-btn');
   if (!btn) return;
-  const variantes  = _currentProd?.producto_variantes || [];
-  const listo = variantes.length === 0 || !!_selectedTalla;
-  btn.disabled    = !listo;
-  btn.textContent = !listo ? 'Selecciona una talla' : '🛒 Agregar al carrito';
+  const variantes    = _currentProd?.producto_variantes || [];
+  const tieneColores = [...new Set(variantes.filter(v=>v.color).map(v=>v.color))].length > 0;
+
+  if (variantes.length === 0) {
+    btn.disabled    = false;
+    btn.textContent = '🛒 Agregar al carrito';
+  } else if (tieneColores && !_selectedColor) {
+    btn.disabled    = true;
+    btn.textContent = 'Selecciona un color';
+  } else if (!_selectedTalla) {
+    btn.disabled    = true;
+    btn.textContent = 'Selecciona una talla';
+  } else {
+    btn.disabled    = false;
+    btn.textContent = '🛒 Agregar al carrito';
+  }
 }
 
 async function addToCart() {
