@@ -433,23 +433,184 @@ async function openProducto(prodId) {
   }
 }
 
-// Zoom modal de imagen
-function openZoom(url) {
-  if (!url) return;
-  let overlay = document.getElementById('zoom-overlay');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'zoom-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out';
-    overlay.onclick = () => overlay.remove();
-    document.body.appendChild(overlay);
-  }
-  overlay.innerHTML = `
-    <img src="${url}" style="max-width:92vw;max-height:92vh;object-fit:contain;border-radius:4px;box-shadow:0 8px 40px rgba(0,0,0,0.6)">
-    <button onclick="document.getElementById('zoom-overlay').remove()"
-      style="position:absolute;top:16px;right:20px;background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:24px;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+// ─── VIEWER INMERSIVO tipo Adidas/Nike ───────────────────────────────
+// Muestra todas las imágenes del producto en un lightbox de pantalla
+// completa con navegación ← → y swipe en móvil.
+
+let _zoomImgs = [];
+let _zoomIdx  = 0;
+
+function openZoom(clickedUrl) {
+  if (!_currentProd) return;
+
+  // Construir lista de imágenes desde el producto actual
+  const imgs = (_currentProd.producto_imagenes || [])
+    .slice()
+    .sort((a, b) => (b.es_principal ? 1 : 0) - (a.es_principal ? 1 : 0));
+
+  _zoomImgs = imgs.map(i => i.url).filter(Boolean);
+
+  // Si no hay imágenes en BD, usar la URL que se pasó
+  if (!_zoomImgs.length && clickedUrl) _zoomImgs = [clickedUrl];
+  if (!_zoomImgs.length) return;
+
+  // Índice de la imagen clickeada
+  _zoomIdx = Math.max(0, _zoomImgs.indexOf(clickedUrl));
+
+  _renderZoomViewer();
+}
+
+function _renderZoomViewer() {
+  // Eliminar viewer anterior si existe
+  document.getElementById('zoom-viewer')?.remove();
+
+  const total = _zoomImgs.length;
+  const url   = _zoomImgs[_zoomIdx];
+
+  const viewer = document.createElement('div');
+  viewer.id = 'zoom-viewer';
+  viewer.innerHTML = `
+    <!-- Overlay oscuro -->
+    <div id="zoom-backdrop" style="
+      position:fixed;inset:0;background:rgba(0,0,0,0.96);z-index:9998;
+      opacity:0;transition:opacity 0.25s ease;pointer-events:none">
+    </div>
+
+    <!-- Viewer principal -->
+    <div style="
+      position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;overflow:hidden" id="zoom-inner">
+
+      <!-- Botón cerrar -->
+      <button onclick="closeZoom()" style="
+        position:absolute;top:16px;right:16px;
+        width:40px;height:40px;border-radius:50%;border:none;
+        background:rgba(255,255,255,0.12);color:#fff;font-size:20px;
+        cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center;
+        backdrop-filter:blur(4px);transition:background 0.15s">×</button>
+
+      <!-- Contador -->
+      ${total > 1 ? `<div style="
+        position:absolute;top:20px;left:50%;transform:translateX(-50%);
+        font-size:12px;color:rgba(255,255,255,0.5);letter-spacing:2px;z-index:10">
+        ${_zoomIdx + 1} / ${total}
+      </div>` : ''}
+
+      <!-- Imagen principal -->
+      <div id="zoom-img-wrap" style="
+        flex:1;display:flex;align-items:center;justify-content:center;
+        width:100%;padding:60px 80px;box-sizing:border-box;cursor:zoom-out"
+        onclick="closeZoom()">
+        <img id="zoom-main-img" src="${url}" style="
+          max-width:100%;max-height:80vh;object-fit:contain;
+          border-radius:4px;display:block;
+          transition:opacity 0.2s ease;user-select:none;
+          box-shadow:0 4px 40px rgba(0,0,0,0.4)" draggable="false">
+      </div>
+
+      <!-- Flechas nav (solo si hay más de 1 imagen) -->
+      ${total > 1 ? `
+        <button onclick="event.stopPropagation();zoomNav(-1)" style="
+          position:absolute;left:12px;top:50%;transform:translateY(-50%);
+          width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.2);
+          background:rgba(255,255,255,0.08);color:#fff;font-size:20px;
+          cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center;
+          backdrop-filter:blur(4px);transition:background 0.15s"
+          onmouseover="this.style.background='rgba(255,255,255,0.18)'"
+          onmouseout="this.style.background='rgba(255,255,255,0.08)'">‹</button>
+
+        <button onclick="event.stopPropagation();zoomNav(1)" style="
+          position:absolute;right:12px;top:50%;transform:translateY(-50%);
+          width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.2);
+          background:rgba(255,255,255,0.08);color:#fff;font-size:20px;
+          cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center;
+          backdrop-filter:blur(4px);transition:background 0.15s"
+          onmouseover="this.style.background='rgba(255,255,255,0.18)'"
+          onmouseout="this.style.background='rgba(255,255,255,0.08)'">›</button>
+      ` : ''}
+
+      <!-- Miniaturas inferiores -->
+      ${total > 1 ? `
+        <div id="zoom-thumbs" style="
+          display:flex;gap:8px;padding:12px 20px;overflow-x:auto;
+          scrollbar-width:none;max-width:100%;flex-shrink:0"
+          onclick="event.stopPropagation()">
+          ${_zoomImgs.map((img, i) => `
+            <img src="${img}" onclick="zoomGoTo(${i})" style="
+              width:60px;height:60px;object-fit:cover;border-radius:6px;
+              cursor:pointer;opacity:${i === _zoomIdx ? '1' : '0.45'};
+              border:2px solid ${i === _zoomIdx ? '#c9a84c' : 'transparent'};
+              transition:all 0.18s ease;flex-shrink:0"
+              id="zoom-thumb-${i}">
+          `).join('')}
+        </div>
+      ` : ''}
+    </div>
   `;
-  overlay.style.display = 'flex';
+
+  document.body.appendChild(viewer);
+  document.body.style.overflow = 'hidden';
+
+  // Fade in backdrop
+  requestAnimationFrame(() => {
+    document.getElementById('zoom-backdrop').style.opacity = '1';
+  });
+
+  // Swipe en móvil
+  let touchStartX = 0;
+  viewer.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  viewer.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 50) zoomNav(dx < 0 ? 1 : -1);
+  });
+
+  // Teclado
+  document.addEventListener('keydown', _zoomKeyHandler);
+}
+
+function zoomNav(delta) {
+  const total = _zoomImgs.length;
+  if (total <= 1) return;
+  _zoomIdx = (_zoomIdx + delta + total) % total;
+  // Cambiar imagen con fade
+  const img = document.getElementById('zoom-main-img');
+  if (img) {
+    img.style.opacity = '0';
+    setTimeout(() => {
+      img.src = _zoomImgs[_zoomIdx];
+      img.style.opacity = '1';
+    }, 180);
+  }
+  // Actualizar miniaturas
+  document.querySelectorAll('[id^="zoom-thumb-"]').forEach((el, i) => {
+    el.style.opacity = i === _zoomIdx ? '1' : '0.45';
+    el.style.borderColor = i === _zoomIdx ? '#c9a84c' : 'transparent';
+  });
+  // Actualizar contador
+  const counter = document.querySelector('#zoom-viewer [style*="letter-spacing:2px"]');
+  if (counter) counter.textContent = `${_zoomIdx + 1} / ${_zoomImgs.length}`;
+}
+
+function zoomGoTo(idx) {
+  _zoomIdx = idx;
+  zoomNav(0);
+}
+
+function closeZoom() {
+  const viewer = document.getElementById('zoom-viewer');
+  if (!viewer) return;
+  document.getElementById('zoom-backdrop').style.opacity = '0';
+  setTimeout(() => {
+    viewer.remove();
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', _zoomKeyHandler);
+  }, 220);
+}
+
+function _zoomKeyHandler(e) {
+  if (e.key === 'Escape')      closeZoom();
+  if (e.key === 'ArrowRight')  zoomNav(1);
+  if (e.key === 'ArrowLeft')   zoomNav(-1);
 }
 
 function renderTallasHTML(variantes) {
@@ -474,8 +635,17 @@ function renderTallasHTML(variantes) {
 }
 
 function setGalleryImg(url, idx) {
-  document.getElementById('gallery-main').innerHTML = `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover" />`;
+  // Cambiar imagen principal en galería
+  const mainImg = document.getElementById('gallery-main-img');
+  if (mainImg) {
+    mainImg.style.opacity = '0';
+    setTimeout(() => { mainImg.src = url; mainImg.style.opacity = '1'; }, 150);
+  }
+  // Actualizar miniatura activa
   document.querySelectorAll('.gallery-thumb').forEach((t, i) => t.classList.toggle('active', i === idx));
+  // El click en la imagen principal abrirá el viewer desde esa posición
+  const mainEl = document.getElementById('gallery-main');
+  if (mainEl) mainEl.onclick = () => openZoom(url);
 }
 
 function selectColor(color) {
