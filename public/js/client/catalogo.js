@@ -1,3 +1,45 @@
+// ─── FILTROS CATÁLOGO ────────────────────────────────────────────────
+
+function setGeneroFilter(btn, genero) {
+  // Actualizar chips activos
+  document.querySelectorAll('.cat-genero-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // Sincronizar con el select oculto
+  const sel = document.getElementById('genero-select');
+  if (sel) sel.value = genero;
+  renderCatalogo();
+}
+
+function setCatFromSelect(slug) {
+  _catFilter = slug;
+  renderCatalogo();
+}
+
+// Poblar select de categorías desde APP.categorias
+function fillCatSelect() {
+  const sel = document.getElementById('cat-select-drop');
+  if (!sel || !APP.categorias) return;
+  sel.innerHTML = '<option value="">Categoría</option>' +
+    APP.categorias.map(c => `<option value="${c.slug}">${c.nombre}</option>`).join('');
+}
+
+// Poblar select de colores con los colores disponibles en los productos
+function fillColorSelect(productos) {
+  const sel = document.getElementById('color-select');
+  if (!sel) return;
+  const coloresSet = new Set();
+  (productos || []).forEach(p =>
+    (p.producto_variantes || []).forEach(v => {
+      if (v.activo && v.stock > 0 && v.color) coloresSet.add(v.color);
+    })
+  );
+  const actual = sel.value;
+  sel.innerHTML = '<option value="">Color</option>' +
+    [...coloresSet].sort().map(color =>
+      `<option value="${color}" ${actual === color ? 'selected' : ''}>${color}</option>`
+    ).join('');
+}
+
 // ─── RICWER CLIENT — catalogo.js ────────────────────────────────────
 let _catFilter   = '';    // slug categoría activa
 let _catSearch   = '';    // texto búsqueda
@@ -58,11 +100,31 @@ async function renderCatalogo(searchQ = null) {
     );
   }
 
+  // Filtro por color (client-side)
+  const colorFiltro = document.getElementById('color-select')?.value || '';
+  if (colorFiltro) {
+    productos = productos.filter(p =>
+      (p.producto_variantes || []).some(
+        v => v.activo && v.stock > 0 && v.color === colorFiltro
+      )
+    );
+  }
+
   _catProducts = productos;
 
-  // Construir chips de tallas con los datos COMPLETOS (antes del filtro)
-  // para que el usuario siempre vea todas las tallas disponibles.
+  // Actualizar selects y chips con datos completos (antes del filtro)
+  fillCatSelect();
+  fillColorSelect(data || []);
   renderTallaChips(data || []);
+
+  // Mostrar/ocultar fila de tallas
+  const tallaRow = document.getElementById('talla-row');
+  if (tallaRow) {
+    const hayTallas = (data || []).some(p =>
+      (p.producto_variantes || []).some(v => v.activo && v.stock > 0)
+    );
+    tallaRow.style.display = hayTallas ? 'flex' : 'none';
+  }
 
   if (countEl) countEl.textContent = `${_catProducts.length} producto${_catProducts.length !== 1 ? 's' : ''}`;
 
@@ -76,16 +138,9 @@ async function renderCatalogo(searchQ = null) {
 
 // ─── CHIPS CATEGORÍAS ────────────────────────────────────────────────
 function renderCatChips() {
-  const el = document.getElementById('cat-chips');
-  if (!el || !APP.categorias) return;
-  el.innerHTML = `
-    <button class="chip-filter ${!_catFilter ? 'active' : ''}" onclick="filterCategoria('')">Todos</button>
-    ${APP.categorias.map(c => `
-      <button class="chip-filter ${_catFilter === c.slug ? 'active' : ''}" onclick="filterCategoria('${c.slug}')">
-        ${c.icono || ''} ${c.nombre}
-      </button>
-    `).join('')}
-  `;
+  // Sincronizar el select visible de categoría con _catFilter
+  const sel = document.getElementById('cat-select-drop');
+  if (sel) sel.value = _catFilter || '';
 }
 
 // ─── CHIPS TALLAS ────────────────────────────────────────────────────

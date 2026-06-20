@@ -164,43 +164,55 @@
       <span class="cat-count-badge" id="cat-count"></span>
     </div>
 
-    <!-- Barra de filtros unificada -->
+    <!-- Barra de filtros — una sola fila horizontal -->
     <div class="cat-filters">
+      <div class="cat-filter-bar">
 
-      <!-- Fila 1: Categorías -->
-      <div class="cat-filter-row">
-        <span class="cat-filter-label">Categoría</span>
-        <div class="cat-chips-scroll" id="cat-chips"></div>
+        <!-- Género como chips -->
+        <button class="cat-genero-chip active" data-genero="" onclick="setGeneroFilter(this,'')">Todos</button>
+        <button class="cat-genero-chip" data-genero="Hombre" onclick="setGeneroFilter(this,'Hombre')">Hombre</button>
+        <button class="cat-genero-chip" data-genero="Mujer" onclick="setGeneroFilter(this,'Mujer')">Mujer</button>
+        <button class="cat-genero-chip" data-genero="Niño" onclick="setGeneroFilter(this,'Niño')">Niños</button>
+
+        <div class="cat-filter-divider"></div>
+
+        <!-- Color como select -->
+        <select class="cat-select-pill" id="color-select" onchange="renderCatalogo()">
+          <option value="">Color</option>
+        </select>
+
+        <!-- Categoría como select -->
+        <select class="cat-select-pill" id="cat-select-drop" onchange="setCatFromSelect(this.value)">
+          <option value="">Categoría</option>
+        </select>
+
+        <!-- Ordenar -->
+        <select class="cat-select-pill" id="sort-select" onchange="renderCatalogo()">
+          <option value="">Ordenar por</option>
+          <option value="precio_asc">Precio ↑</option>
+          <option value="precio_desc">Precio ↓</option>
+          <option value="nuevo">Más nuevos</option>
+          <option value="nombre">A-Z</option>
+        </select>
+
       </div>
 
-      <!-- Fila 2: Tallas -->
-      <div class="cat-filter-row" id="talla-row">
+      <!-- Fila de tallas (aparece cuando hay tallas disponibles) -->
+      <div class="cat-talla-row" id="talla-row" style="display:none">
         <span class="cat-filter-label">Talla</span>
         <div class="cat-chips-scroll" id="talla-chips"></div>
       </div>
 
-      <!-- Fila 3: Género + Ordenar (en la misma fila, a la derecha) -->
-      <div class="cat-filter-row cat-filter-row-selects">
-        <span class="cat-filter-label">Filtrar</span>
-        <div class="cat-selects-wrap">
-          <select class="cat-select" id="genero-select" onchange="renderCatalogo()">
-            <option value="">Todos los géneros</option>
-            <option value="Hombre">Hombre</option>
-            <option value="Mujer">Mujer</option>
-            <option value="Niño">Niño</option>
-            <option value="Niña">Niña</option>
-            <option value="Unisex">Unisex</option>
-          </select>
-          <select class="cat-select" id="sort-select" onchange="renderCatalogo()">
-            <option value="">Ordenar por</option>
-            <option value="precio_asc">Precio: menor a mayor</option>
-            <option value="precio_desc">Precio: mayor a menor</option>
-            <option value="nuevo">Más nuevos</option>
-            <option value="nombre">Nombre A-Z</option>
-          </select>
-        </div>
-      </div>
-
+      <!-- input oculto para mantener compatibilidad con renderCatalogo -->
+      <select id="genero-select" style="display:none" onchange="renderCatalogo()">
+        <option value="">Todos</option>
+        <option value="Hombre">Hombre</option>
+        <option value="Mujer">Mujer</option>
+        <option value="Niño">Niño</option>
+        <option value="Niña">Niña</option>
+        <option value="Unisex">Unisex</option>
+      </select>
+      <div id="cat-chips" style="display:none"></div>
     </div>
 
     <!-- Grid de productos -->

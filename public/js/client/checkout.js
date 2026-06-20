@@ -1,45 +1,33 @@
-// ─── RICWER CLIENT — checkout.js (Wompi Edition) ────────────────────
-// Requiere el script de Wompi en el HTML:
-// <script src="https://checkout.wompi.co/widget.js"></script>
+// ─── RICWER CLIENT — checkout.js (Wompi Edition) ─────────────────────
+// Flujo por pasos: Entrega → Dirección → Contacto → Pago
 
 let CHECKOUT = {
-  tipoEntrega:     'recogida',  // 'recogida' | 'domicilio'
-  direccionId:     null,
-  metodoPago:      'wompi',     // 'wompi' | 'efectivo'
-  cupon:           null,
-  cuponDescuento:  0,
-  costoEnvio:      0,
+  tipoEntrega:    'recogida',
+  direccionId:    null,
+  metodoPago:     'wompi',
+  cupon:          null,
+  cuponDescuento: 0,
+  costoEnvio:     0,
+  // Control de pasos
+  pasoActual:     1,   // 1=entrega, 2=dirección/datos, 3=pago
 };
 
-const COSTO_ENVIO_DOM = 10000; // $10.000 fijo
+const COSTO_ENVIO_DOM = 10000;
 
-// ─── WOMPI CONFIG ────────────────────────────────────────────────────
-// ⚠️  REEMPLAZA estos valores con los de tu cuenta en https://wompi.co
-//
-// SANDBOX (pruebas): entra a Developers > API Keys en el dashboard de Wompi
-// PRODUCCIÓN:        solicita activación en wompi.co → usar pub_live_...
-//
-// Tarjetas de prueba sandbox:
-//   Visa aprobada:  4242 4242 4242 4242  CVV: 123  Exp: 12/29
-//   Mastercard:     5555 5555 5555 4444  CVV: 123  Exp: 12/29
-//   Nequi sandbox:  3991111111  (se aprueba automáticamente)
-
-const WOMPI_ENV    = 'sandbox';   // 'sandbox' | 'production'
+const WOMPI_ENV     = 'sandbox';
 const WOMPI_PUB_KEY = WOMPI_ENV === 'production'
-  ? 'pub_live_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'   // ← tu llave de producción
-  : 'pub_test_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';  // ← tu llave de sandbox
-
-// URL a la que Wompi redirige tras el pago
-const WOMPI_REDIRECT_URL = window.location.origin + '/cliente.html#ordenes';
-
-// API base de Wompi para verificar transacciones
+  ? 'pub_live_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+  : 'pub_test_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
+const WOMPI_REDIRECT_URL = window.location.origin + '/cliente#ordenes';
 const WOMPI_API_BASE = WOMPI_ENV === 'production'
   ? 'https://production.wompi.co/v1'
   : 'https://sandbox.wompi.co/v1';
 
 const METODOS_PAGO = [
-  { id: 'wompi',   icon: '💳', label: 'Pagar en línea',    sub: 'Tarjeta, Nequi, PSE, Bancolombia · Powered by Wompi' },
-  { id: 'efectivo', icon: '💵', label: 'Contra entrega',   sub: 'Solo domicilio · El cobrador te visitará' },
+  { id: 'wompi',    icon: '💳', label: 'Pagar en línea',
+    sub: 'Tarjeta, Nequi, PSE, Bancolombia · Powered by Wompi' },
+  { id: 'efectivo', icon: '💵', label: 'Contra entrega',
+    sub: 'Solo domicilio · El cobrador te visitará' },
 ];
 
 // ─── RENDER CHECKOUT ─────────────────────────────────────────────────
@@ -51,8 +39,7 @@ async function renderCheckout() {
   if (!stepsEl || !summaryEl) return;
 
   const { data: dirs } = await sb
-    .from('direcciones')
-    .select('*')
+    .from('direcciones').select('*')
     .eq('user_id', APP.user.id)
     .order('es_principal', { ascending: false });
   const direcciones = dirs || [];
@@ -61,198 +48,234 @@ async function renderCheckout() {
   totals.envio = CHECKOUT.tipoEntrega === 'domicilio' ? COSTO_ENVIO_DOM : 0;
   const totalFinal = Math.max(0, totals.subtotal - totals.descuento + totals.envio);
 
-  // ── STEPS ──
+  const esDomicilio = CHECKOUT.tipoEntrega === 'domicilio';
+
   stepsEl.innerHTML = `
 
-    <!-- PASO 1: TIPO ENTREGA -->
-    <div class="checkout-step">
-      <div class="step-header">
-        <div class="step-num">1</div>
-        <div class="step-title">TIPO DE ENTREGA</div>
-      </div>
-      <div class="delivery-tabs">
-        <button class="delivery-tab ${CHECKOUT.tipoEntrega === 'recogida' ? 'active' : ''}" onclick="setTipoEntrega('recogida')">
-          <div class="dt-icon">🏪</div>
-          <div class="dt-title">Recoger en tienda</div>
-          <div class="dt-desc">Bogotá · Gratis<br>Listo en 1-2 días hábiles</div>
-        </button>
-        <button class="delivery-tab ${CHECKOUT.tipoEntrega === 'domicilio' ? 'active' : ''}" onclick="setTipoEntrega('domicilio')">
-          <div class="dt-icon">🚚</div>
-          <div class="dt-title">Envío a domicilio</div>
-          <div class="dt-desc">Todo Colombia · ${fmtMoneyFull(COSTO_ENVIO_DOM)}<br>2-5 días hábiles</div>
-        </button>
-      </div>
-      ${CHECKOUT.tipoEntrega === 'recogida' ? `
-        <div style="padding:14px 16px;background:var(--gold-bg);border:1px solid rgba(201,168,76,0.2);border-radius:var(--radius);font-size:13px;color:var(--text-muted)">
-          📍 <strong style="color:var(--text)">Tienda RICWER</strong><br>
-          Bogotá, Colombia · Horario: Lun-Sáb 8am-7pm<br>
-          Te avisaremos cuando tu pedido esté listo.
+    <!-- ══ PASO 1: TIPO DE ENTREGA ══════════════════════════════ -->
+    <div class="co-step ${CHECKOUT.pasoActual >= 1 ? 'active' : ''}" id="co-step-1">
+      <div class="co-step-header" onclick="irAPaso(1)">
+        <div class="co-step-num ${CHECKOUT.pasoActual > 1 ? 'done' : ''}">
+          ${CHECKOUT.pasoActual > 1 ? '✓' : '1'}
         </div>
-      ` : `
+        <div class="co-step-title">TIPO DE ENTREGA</div>
+        ${CHECKOUT.pasoActual > 1 ? `
+          <div class="co-step-summary">
+            ${CHECKOUT.tipoEntrega === 'recogida' ? '🏪 Recogida en tienda' : '🚚 Domicilio'}
+          </div>` : ''}
+      </div>
+      <div class="co-step-body" id="co-body-1">
+        <div class="delivery-tabs">
+          <button class="delivery-tab ${CHECKOUT.tipoEntrega === 'recogida' ? 'active' : ''}"
+            onclick="setTipoEntrega('recogida')">
+            <div class="dt-icon">🏪</div>
+            <div class="dt-title">Recoger en tienda</div>
+            <div class="dt-desc">Medellín · Gratis · Listo en 1-2 días</div>
+          </button>
+          <button class="delivery-tab ${CHECKOUT.tipoEntrega === 'domicilio' ? 'active' : ''}"
+            onclick="setTipoEntrega('domicilio')">
+            <div class="dt-icon">🚚</div>
+            <div class="dt-title">Envío a domicilio</div>
+            <div class="dt-desc">Todo Colombia · ${fmtMoneyFull(COSTO_ENVIO_DOM)} · 2-5 días</div>
+          </button>
+        </div>
+        <button class="btn btn-gold co-next-btn" onclick="irAPaso(2)">
+          Continuar →
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ PASO 2: DIRECCIÓN (solo domicilio) + DATOS CONTACTO ══ -->
+    <div class="co-step ${CHECKOUT.pasoActual >= 2 ? 'active' : 'locked'}" id="co-step-2">
+      <div class="co-step-header" onclick="CHECKOUT.pasoActual > 2 && irAPaso(2)">
+        <div class="co-step-num ${CHECKOUT.pasoActual > 2 ? 'done' : ''}">
+          ${CHECKOUT.pasoActual > 2 ? '✓' : '2'}
+        </div>
+        <div class="co-step-title">${esDomicilio ? 'DIRECCIÓN Y CONTACTO' : 'DATOS DE CONTACTO'}</div>
+        ${CHECKOUT.pasoActual > 2 ? `
+          <div class="co-step-summary">
+            ${document.getElementById('co-nombre')?.value || APP.profile?.nombre || 'Completado'} ✓
+          </div>` : ''}
+      </div>
+      <div class="co-step-body" id="co-body-2">
+
+        ${esDomicilio ? `
+        <!-- Dirección de envío -->
+        <div class="co-section-label">📍 DIRECCIÓN DE ENVÍO</div>
         <div id="dir-section">
           ${renderDireccionesHTML(direcciones)}
         </div>
-      `}
+        <div style="height:16px"></div>
+        ` : `
+        <!-- Info tienda -->
+        <div style="padding:12px 16px;background:var(--gold-bg);border:1px solid rgba(201,168,76,0.25);border-radius:var(--radius);font-size:13px;color:var(--text-muted);margin-bottom:16px">
+          📍 <strong style="color:var(--text)">Tienda RICWER</strong> · Medellín, Colombia<br>
+          Lun-Sáb 8am–7pm · Te avisaremos cuando tu pedido esté listo.
+        </div>
+        `}
+
+        <!-- Datos de contacto -->
+        <div class="co-section-label">👤 DATOS DE CONTACTO</div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Nombre *</label>
+            <input class="form-input" id="co-nombre"
+              value="${APP.profile?.nombre || ''}" placeholder="Tu nombre">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Apellido *</label>
+            <input class="form-input" id="co-apellido"
+              value="${APP.profile?.apellido || ''}" placeholder="Tu apellido">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Teléfono *</label>
+            <input class="form-input" id="co-tel" type="tel"
+              value="${APP.profile?.telefono || ''}" placeholder="+57 300 000 0000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Correo</label>
+            <input class="form-input" id="co-email"
+              value="${APP.user?.email || ''}" disabled style="opacity:0.6">
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label class="form-label">Notas para el pedido (opcional)</label>
+            <textarea class="form-textarea" id="co-notas"
+              placeholder="Ej: dejar con el portero, referencia especial..."></textarea>
+          </div>
+        </div>
+
+        <button class="btn btn-gold co-next-btn" onclick="irAPaso(3)">
+          Continuar →
+        </button>
+      </div>
     </div>
 
-    <!-- PASO 2: DATOS CONTACTO -->
-    <div class="checkout-step">
-      <div class="step-header">
-        <div class="step-num">2</div>
-        <div class="step-title">DATOS DE CONTACTO</div>
+    <!-- ══ PASO 3: MÉTODO DE PAGO ════════════════════════════════ -->
+    <div class="co-step ${CHECKOUT.pasoActual >= 3 ? 'active' : 'locked'}" id="co-step-3">
+      <div class="co-step-header">
+        <div class="co-step-num">3</div>
+        <div class="co-step-title">MÉTODO DE PAGO</div>
       </div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label">Nombre</label>
-          <input class="form-input" id="co-nombre" value="${APP.profile?.nombre || ''}" placeholder="Tu nombre" />
+      <div class="co-step-body" id="co-body-3">
+        <div class="payment-methods">
+          ${METODOS_PAGO
+            .filter(m => esDomicilio || m.id !== 'efectivo')
+            .map(m => `
+              <button class="pay-option ${CHECKOUT.metodoPago === m.id ? 'active' : ''}"
+                onclick="setMetodoPago('${m.id}')">
+                <span class="pay-icon">${m.icon}</span>
+                <span>
+                  <span class="pay-label">${m.label}</span>
+                  <span class="pay-sub">${m.sub}</span>
+                </span>
+              </button>`).join('')}
         </div>
-        <div class="form-group">
-          <label class="form-label">Apellido</label>
-          <input class="form-input" id="co-apellido" value="${APP.profile?.apellido || ''}" placeholder="Tu apellido" />
+
+        ${CHECKOUT.metodoPago === 'wompi' ? `
+          <div class="co-info-box">
+            🔒 Pago 100% seguro por <strong>Wompi (Bancolombia)</strong><br>
+            Tarjeta crédito/débito · Nequi · PSE · Bancolombia a la mano
+          </div>` : `
+          <div class="co-info-box">
+            💵 Paga al recibir tu pedido en la puerta.<br>
+            Ten el monto exacto. Solo disponible para domicilios.
+          </div>`}
+
+        <!-- Cupón -->
+        <div class="co-section-label" style="margin-top:16px">🏷️ CÓDIGO PROMOCIONAL</div>
+        <div class="coupon-row">
+          <input class="form-input coupon-input" id="co-cupon"
+            placeholder="Ej: RICWER10"
+            value="${CHECKOUT.cupon || ''}">
+          <button class="btn btn-ghost" onclick="aplicarCupon()">Aplicar</button>
         </div>
-        <div class="form-group">
-          <label class="form-label">Teléfono</label>
-          <input class="form-input" id="co-tel" value="${APP.profile?.telefono || ''}" placeholder="+57 300 000 0000" type="tel" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Correo</label>
-          <input class="form-input" id="co-email" value="${APP.user?.email || ''}" disabled style="opacity:0.6" />
-        </div>
-        <div class="form-group span2">
-          <label class="form-label">Notas para el pedido (opcional)</label>
-          <textarea class="form-textarea" id="co-notas" placeholder="Ej: dejar con el portero, talla especial..."></textarea>
-        </div>
+        ${CHECKOUT.cuponDescuento > 0 ? `
+          <div style="font-size:13px;color:var(--green);margin-top:6px;font-weight:600">
+            ✅ Descuento aplicado: −${fmtMoneyFull(CHECKOUT.cuponDescuento)}
+          </div>` : ''}
+
+        <!-- Confirmar -->
+        <button class="btn btn-gold btn-full" style="margin-top:20px;padding:16px;font-size:14px;letter-spacing:2px"
+          onclick="confirmarOrden()" id="btn-confirmar">
+          ${CHECKOUT.metodoPago === 'wompi'
+            ? `🔒 Ir a pagar · ${fmtMoneyFull(totalFinal)}`
+            : `✅ Confirmar pedido · ${fmtMoneyFull(totalFinal)}`}
+        </button>
+        <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:8px">
+          Al confirmar aceptas nuestros
+          <button class="btn btn-ghost" style="font-size:11px;padding:0;text-transform:none;letter-spacing:0"
+            onclick="openModal('modal-terminos')">términos y condiciones</button>
+        </p>
       </div>
     </div>
-
-    <!-- PASO 3: MÉTODO DE PAGO -->
-    <div class="checkout-step">
-      <div class="step-header">
-        <div class="step-num">3</div>
-        <div class="step-title">MÉTODO DE PAGO</div>
-      </div>
-      <div class="payment-methods">
-        ${METODOS_PAGO
-          .filter(m => CHECKOUT.tipoEntrega === 'domicilio' || m.id !== 'efectivo')
-          .map(m => `
-            <button class="pay-option ${CHECKOUT.metodoPago === m.id ? 'active' : ''}" onclick="setMetodoPago('${m.id}')">
-              <span class="pay-icon">${m.icon}</span>
-              <span>
-                <span class="pay-label">${m.label}</span>
-                <span class="pay-sub">${m.sub}</span>
-              </span>
-            </button>
-          `).join('')}
-      </div>
-
-      ${CHECKOUT.metodoPago === 'wompi' ? `
-        <div style="margin-top:16px;padding:14px;background:var(--surface2);border-radius:var(--radius);font-size:13px;color:var(--text-muted)">
-          🔒 Pago 100% seguro procesado por <strong style="color:var(--text)">Wompi (Bancolombia)</strong><br>
-          Acepta: Tarjeta crédito/débito, Nequi, PSE, Bancolombia a la mano.<br>
-          Al confirmar se abrirá la ventana de pago.
-        </div>
-      ` : ''}
-      ${CHECKOUT.metodoPago === 'efectivo' ? `
-        <div style="margin-top:16px;padding:14px;background:var(--surface2);border-radius:var(--radius);font-size:13px;color:var(--text-muted)">
-          💵 Paga al momento de recibir tu pedido en la puerta.<br>
-          Ten el dinero exacto listo. Solo disponible para domicilios.
-        </div>
-      ` : ''}
-    </div>
-
-    <!-- CONFIRMAR -->
-    <button class="btn btn-gold btn-full btn-lg" onclick="confirmarOrden()" id="btn-confirmar" style="margin-top:8px">
-      ${CHECKOUT.metodoPago === 'wompi'
-        ? `Ir a pagar · ${fmtMoneyFull(totalFinal)}`
-        : `Confirmar pedido · ${fmtMoneyFull(totalFinal)}`
-      }
-    </button>
-    <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:10px">
-      Al confirmar aceptas nuestros <button class="btn btn-ghost" style="font-size:11px;padding:0;letter-spacing:0;text-transform:none" onclick="openModal('modal-terminos')">términos y condiciones</button>
-    </p>
   `;
 
-  // ── ORDER SUMMARY ──
-  summaryEl.innerHTML = `
+  renderOrderSummary(summaryEl, totals, totalFinal);
+}
+
+// ─── CONTROL DE PASOS ────────────────────────────────────────────────
+function irAPaso(paso) {
+  // Validar antes de avanzar
+  if (paso === 2 && CHECKOUT.pasoActual === 1) {
+    CHECKOUT.pasoActual = 2;
+    renderCheckout();
+    return;
+  }
+  if (paso === 3 && CHECKOUT.pasoActual === 2) {
+    // Validar datos de contacto
+    const nombre = document.getElementById('co-nombre')?.value.trim();
+    const tel    = document.getElementById('co-tel')?.value.trim();
+    if (!nombre) { toast('Ingresa tu nombre', 'error'); return; }
+    if (!tel)    { toast('Ingresa tu teléfono', 'error'); return; }
+    if (CHECKOUT.tipoEntrega === 'domicilio' && !CHECKOUT.direccionId) {
+      toast('Selecciona o agrega una dirección de envío', 'error'); return;
+    }
+    CHECKOUT.pasoActual = 3;
+    renderCheckout();
+    return;
+  }
+  // Volver atrás siempre es válido
+  if (paso < CHECKOUT.pasoActual) {
+    CHECKOUT.pasoActual = paso;
+    renderCheckout();
+  }
+}
+
+// ─── RESUMEN DE ORDEN ────────────────────────────────────────────────
+function renderOrderSummary(el, totals, totalFinal) {
+  el.innerHTML = `
     <div class="order-summary">
       <div class="os-title">TU PEDIDO</div>
       <div class="os-items">
         ${CARRITO.map(item => `
           <div class="os-item">
-            <div class="os-item-img">${item.imagen ? `<img src="${item.imagen}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:3px"/>` : '👟'}</div>
+            <div class="os-item-img">
+              ${item.imagen
+                ? `<img src="${item.imagen}" alt="" style="width:100%;height:100%;object-fit:cover">`
+                : '👟'}
+            </div>
             <div class="os-item-info">
               <div class="os-item-name">${item.producto_nombre}</div>
-              <div class="os-item-var">T${item.talla || '?'} ${item.color ? '· ' + item.color : ''} × ${item.cantidad}</div>
+              <div class="os-item-meta">
+                ${item.talla ? `T${item.talla}` : ''}
+                ${item.color ? ` · ${item.color}` : ''}
+                · ×${item.cantidad}
+              </div>
             </div>
             <div class="os-item-price">${fmtMoneyFull(item.precio_unitario * item.cantidad)}</div>
-          </div>
-        `).join('')}
+          </div>`).join('')}
       </div>
-      <div class="os-divider"></div>
-
-      <div class="coupon-wrap">
-        <input class="coupon-input" id="coupon-input" placeholder="CÓDIGO DESCUENTO" maxlength="20" />
-        <button class="btn btn-outline btn-sm" onclick="aplicarCupon()">Aplicar</button>
-      </div>
-
-      <div class="os-row"><span>Subtotal</span><span>${fmtMoneyFull(totals.subtotal)}</span></div>
-      ${CHECKOUT.cuponDescuento > 0 ? `<div class="os-row" style="color:var(--green)"><span>Descuento</span><span>-${fmtMoneyFull(CHECKOUT.cuponDescuento)}</span></div>` : ''}
-      <div class="os-row"><span>Envío</span><span>${totals.envio > 0 ? fmtMoneyFull(totals.envio) : '<span style="color:var(--green)">Gratis</span>'}</span></div>
-      <div class="os-row total"><span>TOTAL</span><span>${fmtMoneyFull(totalFinal)}</span></div>
-
-      <div style="margin-top:16px;text-align:center">
-        <img src="https://wompi.com/assets/img/logos/wompi-logo.svg"
-          alt="Wompi" style="height:22px;opacity:0.5;filter:grayscale(1)" />
+      <div class="os-totals">
+        <div class="os-row"><span>Subtotal</span><span>${fmtMoneyFull(totals.subtotal)}</span></div>
+        ${totals.envio > 0 ? `<div class="os-row"><span>Envío</span><span>${fmtMoneyFull(totals.envio)}</span></div>` : `<div class="os-row"><span>Envío</span><span style="color:var(--green)">Gratis</span></div>`}
+        ${totals.descuento > 0 ? `<div class="os-row" style="color:var(--green)"><span>Descuento</span><span>−${fmtMoneyFull(totals.descuento)}</span></div>` : ''}
+        <div class="os-row os-total"><span>TOTAL</span><span>${fmtMoneyFull(totalFinal)}</span></div>
       </div>
     </div>
   `;
 }
 
-// ─── HELPERS DE ENTREGA / PAGO ────────────────────────────────────────
-function renderDireccionesHTML(dirs) {
-  return `
-    <div style="margin-bottom:16px">
-      ${dirs.map(d => `
-        <div class="delivery-tab" style="margin-bottom:8px;${CHECKOUT.direccionId === d.id ? 'border-color:var(--gold);background:var(--gold-bg)' : ''}"
-          onclick="selectDireccion('${d.id}')">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <div>
-              <div class="dt-title">${d.alias || 'Casa'} ${d.es_principal ? '⭐' : ''}</div>
-              <div class="dt-desc">${d.direccion}<br>${d.ciudad}, ${d.departamento}${d.telefono ? '<br>📱 ' + d.telefono : ''}</div>
-            </div>
-            ${CHECKOUT.direccionId === d.id ? '<span style="color:var(--gold);font-size:20px">✓</span>' : ''}
-          </div>
-        </div>
-      `).join('')}
-    </div>
-    <button class="btn btn-outline btn-sm" onclick="showNuevaDireccion()">+ Nueva dirección</button>
-    <div id="nueva-dir-form" style="display:none;margin-top:16px">
-      <div class="form-grid">
-        <div class="form-group span2">
-          <label class="form-label">Dirección *</label>
-          <input class="form-input" id="nd-dir" placeholder="Calle 10 # 43-55, Apto 301" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Ciudad *</label>
-          <input class="form-input" id="nd-ciudad" value="Medellín" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Departamento</label>
-          <input class="form-input" id="nd-depto" value="Antioquia" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Teléfono de contacto</label>
-          <input class="form-input" id="nd-tel" placeholder="+57 300 000 0000" type="tel" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Alias (ej: Casa, Trabajo)</label>
-          <input class="form-input" id="nd-alias" placeholder="Casa" value="Casa" />
-        </div>
-      </div>
-      <button class="btn btn-gold btn-sm" style="margin-top:12px" onclick="guardarNuevaDireccion()">Guardar dirección</button>
-    </div>
-  `;
-}
+
 
 function setTipoEntrega(tipo) {
   CHECKOUT.tipoEntrega = tipo;
