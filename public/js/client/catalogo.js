@@ -417,7 +417,7 @@ async function openProducto(prodId) {
       <div style="margin-top:20px;padding:14px 16px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border)">
         <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--text-muted)">
           <div>🚚 Envío a todo Colombia · 2-5 días hábiles</div>
-          <div>🏪 Recoge en tienda · Medellín · 1-2 días hábiles</div>
+          <div>🏪 Recoge en tienda · Bogotá · 1-2 días hábiles</div>
           <div>↩️ Cambios y devoluciones en 7 días</div>
           <div>🔒 Pago 100% seguro</div>
         </div>

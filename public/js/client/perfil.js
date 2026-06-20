@@ -89,11 +89,11 @@ async function renderPerfil() {
             </div>
             <div class="form-group">
               <label class="form-label">Ciudad *</label>
-              <input class="form-input" id="ndp-ciudad" value="Medellín" />
+              <input class="form-input" id="ndp-ciudad" value="Bogotá" />
             </div>
             <div class="form-group">
               <label class="form-label">Departamento</label>
-              <input class="form-input" id="ndp-depto" value="Antioquia" />
+              <input class="form-input" id="ndp-depto" value="Cundinamarca" />
             </div>
             <div class="form-group">
               <label class="form-label">Teléfono</label>
@@ -177,8 +177,8 @@ function toggleNuevaDirPerfil() {
 
 async function guardarDirPerfil() {
   const dir    = document.getElementById('ndp-dir')?.value.trim();
-  const ciudad = document.getElementById('ndp-ciudad')?.value.trim() || 'Medellín';
-  const depto  = document.getElementById('ndp-depto')?.value.trim() || 'Antioquia';
+  const ciudad = document.getElementById('ndp-ciudad')?.value.trim() || 'Bogotá';
+  const depto  = document.getElementById('ndp-depto')?.value.trim() || 'Cundinamarca';
   const tel    = document.getElementById('ndp-tel')?.value.trim();
   const alias  = document.getElementById('ndp-alias')?.value.trim() || 'Casa';
   if (!dir) { toast('Ingresa la dirección', 'error'); return; }

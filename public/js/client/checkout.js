@@ -70,7 +70,7 @@ async function renderCheckout() {
             onclick="setTipoEntrega('recogida')">
             <div class="dt-icon">🏪</div>
             <div class="dt-title">Recoger en tienda</div>
-            <div class="dt-desc">Medellín · Gratis · Listo en 1-2 días</div>
+            <div class="dt-desc">Bogotá · Gratis · Listo en 1-2 días</div>
           </button>
           <button class="delivery-tab ${CHECKOUT.tipoEntrega === 'domicilio' ? 'active' : ''}"
             onclick="setTipoEntrega('domicilio')">
@@ -109,7 +109,7 @@ async function renderCheckout() {
         ` : `
         <!-- Info tienda -->
         <div style="padding:12px 16px;background:var(--gold-bg);border:1px solid rgba(201,168,76,0.25);border-radius:var(--radius);font-size:13px;color:var(--text-muted);margin-bottom:16px">
-          📍 <strong style="color:var(--text)">Tienda RICWER</strong> · Medellín, Colombia<br>
+          📍 <strong style="color:var(--text)">Tienda RICWER</strong> · Bogotá, Colombia<br>
           Lun-Sáb 8am–7pm · Te avisaremos cuando tu pedido esté listo.
         </div>
         `}
@@ -296,8 +296,8 @@ function showNuevaDireccion() {
 
 async function guardarNuevaDireccion() {
   const dir    = document.getElementById('nd-dir')?.value.trim();
-  const ciudad = document.getElementById('nd-ciudad')?.value.trim() || 'Medellín';
-  const depto  = document.getElementById('nd-depto')?.value.trim() || 'Antioquia';
+  const ciudad = document.getElementById('nd-ciudad')?.value.trim() || 'Bogotá';
+  const depto  = document.getElementById('nd-depto')?.value.trim() || 'Cundinamarca';
   const tel    = document.getElementById('nd-tel')?.value.trim();
   const alias  = document.getElementById('nd-alias')?.value.trim() || 'Casa';
   if (!dir) { toast('Ingresa la dirección', 'error'); return; }
